@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apps · Quang</title>
+<style>
+  :root{--bg:#16140f;--card:#211d15;--line:#36301f;--cream:#ece3cf;--muted:#a99e84;--gold:#d8a43a}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--cream);font-family:Georgia,'Times New Roman',serif;
+    min-height:100vh;display:flex;justify-content:center;padding:clamp(24px,6vw,64px) 20px}
+  .wrap{width:100%;max-width:600px}
+  h1{font-size:clamp(1.8rem,6vw,2.6rem);font-weight:600;margin-bottom:6px}
+  .sub{color:var(--muted);font-style:italic;margin-bottom:36px}
+  a.app{display:block;text-decoration:none;color:var(--cream);background:var(--card);
+    border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:14px;
+    transition:border-color .18s,transform .06s}
+  a.app:hover{border-color:var(--gold)}
+  a.app:active{transform:scale(.99)}
+  .app .t{font-size:1.25rem;font-weight:600}
+  .app .t .jp{color:var(--gold)}
+  .app .d{color:var(--muted);font-size:.95rem;margin-top:4px}
+  .foot{color:#7c745f;font-size:.8rem;margin-top:32px;text-align:center}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Apps</h1>
+    <p class="sub">Bộ sưu tập ứng dụng web nhỏ.</p>
+
+    <a class="app" href="n1-quiz/">
+      <div class="t">N1 <span class="jp">対策クイズ</span></div>
+      <div class="d">Luyện thi JLPT N1 — Hán tự · Từ vựng · Ngữ pháp, có phát âm.</div>
+    </a>
+
+    <!-- Thêm app mới: chép thư mục app vào repo rồi thêm một thẻ <a class="app" href="ten-app/"> ở đây -->
+
+    <p class="foot">Hosted on GitHub Pages</p>
+  </div>
+</body>
+</html>
