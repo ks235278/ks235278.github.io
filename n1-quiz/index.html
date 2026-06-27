@@ -665,7 +665,7 @@ $('statsHomeBtn').addEventListener('click',()=>{
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, getDocs, updateDoc }
+import { getFirestore, doc, getDoc, getDocFromServer, setDoc, serverTimestamp, collection, getDocs, updateDoc }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -759,6 +759,14 @@ async function loadUserStats(uid){
   }catch(e){ /* lỗi đọc → bắt đầu rỗng */ }
   try{ localStorage.setItem('n1_stats', JSON.stringify(statsCache)); }catch(e){} // nạp vào cache local cho app dùng
 }
+// Lấy "giờ hiện tại" THẬT từ server (chống chỉnh đồng hồ máy): ghi serverTimestamp rồi đọc lại từ server
+async function getServerNow(uid){
+  const ref = doc(db,'stats',uid);
+  await setDoc(ref, { serverCheck: serverTimestamp() }, { merge:true });
+  const snap = await getDocFromServer(ref);
+  const t = snap.exists() ? snap.data().serverCheck : null;
+  return (t && t.toMillis) ? t.toMillis() : Date.now();
+}
 function flushStats(){
   if(!currentUid) return;
   setDoc(doc(db,'stats',currentUid),
@@ -784,20 +792,28 @@ async function resolveUser(user){
     gateOpen(); showPane('authForms'); setMode('login'); return;
   }
   const isAdmin = (user.email||'').toLowerCase() === ADMIN_EMAIL.toLowerCase();
-  let approved = false, createdMs = Date.now();
+  let approved = false, createdMs = null;
   try{
-    const snap = await getDoc(doc(db,'users',user.uid));
+    const snap = await getDocFromServer(doc(db,'users',user.uid)); // đọc từ server để createdAt chuẩn
     if(snap.exists()){
       approved = snap.data().approved === true;
       const c = snap.data().createdAt;
-      createdMs = (c && c.toMillis) ? c.toMillis() : Date.now();
+      if(c && c.toMillis) createdMs = c.toMillis();
     } else {
       await setDoc(doc(db,'users',user.uid), { email:user.email, approved:false, createdAt:serverTimestamp() });
     }
   }catch(e){ /* đọc lỗi → coi như chưa duyệt */ }
 
-  const trialLeft = TRIAL_MS - (Date.now() - createdMs);
-  const inTrial = !approved && !isAdmin && trialLeft > 0; // còn trong thời gian dùng thử
+  // Chỉ người chưa được duyệt mới cần tính hạn dùng thử (theo GIỜ SERVER)
+  let inTrial = false, days = 0;
+  if(!isAdmin && !approved){
+    let serverNow = Date.now();
+    try{ serverNow = await getServerNow(user.uid); }catch(e){ /* mất mạng → tạm dùng giờ máy */ }
+    if(createdMs == null) createdMs = serverNow; // hồ sơ vừa tạo
+    const trialLeft = TRIAL_MS - (serverNow - createdMs);
+    inTrial = trialLeft > 0;
+    days = Math.max(1, Math.ceil(trialLeft / (24*60*60*1000)));
+  }
 
   if(isAdmin || approved || inTrial){
     currentUid = user.uid;
@@ -806,7 +822,6 @@ async function resolveUser(user){
     g('logoutBtn').classList.remove('hidden');
     if(isAdmin){ g('adminBtn').classList.remove('hidden'); setupAdmin(); }
     if(inTrial){
-      const days = Math.max(1, Math.ceil(trialLeft / (24*60*60*1000)));
       g('trialBanner').textContent = `体験中 · Dùng thử — còn ${days} ngày`;
       g('trialBanner').classList.remove('hidden');
     }
