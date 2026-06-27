@@ -189,6 +189,10 @@
     font-size:.8rem;color:var(--gold);background:var(--card);border:1px solid var(--gold-dim);
     border-radius:999px;padding:8px 15px;cursor:pointer;transition:.16s}
   .admin-fab:hover{background:#26211644}
+  .logout-fab{position:fixed;top:14px;left:14px;z-index:900;font:inherit;font-family:var(--jp);font-weight:600;
+    font-size:.8rem;color:var(--muted);background:var(--card);border:1px solid var(--line);
+    border-radius:999px;padding:8px 15px;cursor:pointer;transition:.16s}
+  .logout-fab:hover{border-color:var(--gold-dim);color:var(--cream)}
   #adminPanel{position:fixed;inset:0;background:var(--bg);overflow-y:auto;
     padding:clamp(16px,4vw,40px) clamp(14px,4vw,24px) 64px;z-index:1100;display:flex;justify-content:center}
   #adminPanel.hidden{display:none}
@@ -314,6 +318,9 @@
     </div>
   </div>
 </div>
+
+<!-- ── Nút đăng xuất (hiện khi đã vào app) ─────────────────────────── -->
+<button id="logoutBtn" class="logout-fab hidden">ログアウト · Đăng xuất</button>
 
 <!-- ── Nút + trang duyệt (chỉ admin thấy) ─────────────────────────── -->
 <button id="adminBtn" class="admin-fab hidden">承認 · Duyệt</button>
@@ -729,8 +736,10 @@ g('authSubmit').onclick = async () => {
 ['authEmail','authPass'].forEach(id =>
   g(id).addEventListener('keydown', e => { if(e.key==='Enter') g('authSubmit').click(); }));
 
-// ── Màn chờ duyệt ──
+// ── Đăng xuất ──
+function doLogout(){ if(writeTimer){ clearTimeout(writeTimer); flushStats(); } signOut(auth); } // ghi nốt thống kê trước khi thoát
 g('pendingLogout').onclick = () => signOut(auth);
+g('logoutBtn').onclick     = doLogout;
 g('recheckBtn').onclick    = () => location.reload();
 
 // ── Thống kê thành tích theo từng tài khoản (Firestore: stats/{uid}) ──
@@ -758,6 +767,8 @@ window.addEventListener('pagehide', () => { if(writeTimer){ clearTimeout(writeTi
 
 // ── Trạng thái đăng nhập ──
 async function resolveUser(user){
+  g('logoutBtn').classList.add('hidden');
+  g('adminBtn').classList.add('hidden');
   if(!user){
     currentUid = null;
     try{ localStorage.removeItem('n1_stats'); }catch(e){} // xóa cache để người sau không thấy thống kê người trước
@@ -775,6 +786,7 @@ async function resolveUser(user){
     currentUid = user.uid;
     await loadUserStats(user.uid);   // tải thành tích của chính người này TRƯỚC khi mở app
     gateClose();
+    g('logoutBtn').classList.remove('hidden');
     if(isAdmin){ g('adminBtn').classList.remove('hidden'); setupAdmin(); }
   } else {
     gateOpen(); showPane('authPending');
