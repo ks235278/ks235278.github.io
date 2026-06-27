@@ -193,6 +193,10 @@
     font-size:.8rem;color:var(--muted);background:var(--card);border:1px solid var(--line);
     border-radius:999px;padding:8px 15px;cursor:pointer;transition:.16s}
   .logout-fab:hover{border-color:var(--gold-dim);color:var(--cream)}
+  .trial-banner{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:900;
+    font-family:var(--jp);font-size:.76rem;color:var(--gold);background:var(--card);
+    border:1px solid var(--gold-dim);border-radius:999px;padding:7px 16px;white-space:nowrap;
+    box-shadow:0 4px 18px rgba(0,0,0,.35)}
   #adminPanel{position:fixed;inset:0;background:var(--bg);overflow-y:auto;
     padding:clamp(16px,4vw,40px) clamp(14px,4vw,24px) 64px;z-index:1100;display:flex;justify-content:center}
   #adminPanel.hidden{display:none}
@@ -311,8 +315,8 @@
 
     <div id="authPending" class="auth-pane hidden">
       <div class="auth-icon">⏳</div>
-      <p class="auth-msg">アカウント承認待ち · Tài khoản đang chờ duyệt</p>
-      <p class="auth-sub">管理者の承認をお待ちください。承認後、「再確認」を押してください。<br>Chủ ứng dụng sẽ xét duyệt tài khoản của bạn. Sau khi được duyệt, bấm “Kiểm tra lại”.</p>
+      <p class="auth-msg">体験期間終了 · Đã hết thời gian dùng thử</p>
+      <p class="auth-sub">体験期間が終了しました。引き続き利用するには管理者の承認が必要です。承認後「再確認」を押してください。<br>Đã hết thời gian dùng thử. Cần được chủ ứng dụng duyệt để tiếp tục. Sau khi được duyệt, bấm “Kiểm tra lại”.</p>
       <button class="btn" id="recheckBtn">再確認 · Kiểm tra lại</button>
       <button class="btn ghost" id="pendingLogout" style="margin-top:10px">ログアウト · Đăng xuất</button>
     </div>
@@ -321,6 +325,9 @@
 
 <!-- ── Nút đăng xuất (hiện khi đã vào app) ─────────────────────────── -->
 <button id="logoutBtn" class="logout-fab hidden">ログアウト · Đăng xuất</button>
+
+<!-- ── Dải báo đang dùng thử ───────────────────────────────────────── -->
+<div id="trialBanner" class="trial-banner hidden"></div>
 
 <!-- ── Nút + trang duyệt (chỉ admin thấy) ─────────────────────────── -->
 <button id="adminBtn" class="admin-fab hidden">承認 · Duyệt</button>
@@ -766,30 +773,45 @@ window.N1_persistStat = (id, val) => {
 window.addEventListener('pagehide', () => { if(writeTimer){ clearTimeout(writeTimer); flushStats(); } });
 
 // ── Trạng thái đăng nhập ──
+const TRIAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 ngày dùng thử kể từ lúc đăng ký
 async function resolveUser(user){
   g('logoutBtn').classList.add('hidden');
   g('adminBtn').classList.add('hidden');
+  g('trialBanner').classList.add('hidden');
   if(!user){
     currentUid = null;
     try{ localStorage.removeItem('n1_stats'); }catch(e){} // xóa cache để người sau không thấy thống kê người trước
     gateOpen(); showPane('authForms'); setMode('login'); return;
   }
   const isAdmin = (user.email||'').toLowerCase() === ADMIN_EMAIL.toLowerCase();
-  let approved = false;
+  let approved = false, createdMs = Date.now();
   try{
     const snap = await getDoc(doc(db,'users',user.uid));
-    if(snap.exists()) approved = snap.data().approved === true;
-    else await setDoc(doc(db,'users',user.uid), { email:user.email, approved:false, createdAt:serverTimestamp() });
+    if(snap.exists()){
+      approved = snap.data().approved === true;
+      const c = snap.data().createdAt;
+      createdMs = (c && c.toMillis) ? c.toMillis() : Date.now();
+    } else {
+      await setDoc(doc(db,'users',user.uid), { email:user.email, approved:false, createdAt:serverTimestamp() });
+    }
   }catch(e){ /* đọc lỗi → coi như chưa duyệt */ }
 
-  if(isAdmin || approved){
+  const trialLeft = TRIAL_MS - (Date.now() - createdMs);
+  const inTrial = !approved && !isAdmin && trialLeft > 0; // còn trong thời gian dùng thử
+
+  if(isAdmin || approved || inTrial){
     currentUid = user.uid;
     await loadUserStats(user.uid);   // tải thành tích của chính người này TRƯỚC khi mở app
     gateClose();
     g('logoutBtn').classList.remove('hidden');
     if(isAdmin){ g('adminBtn').classList.remove('hidden'); setupAdmin(); }
+    if(inTrial){
+      const days = Math.max(1, Math.ceil(trialLeft / (24*60*60*1000)));
+      g('trialBanner').textContent = `体験中 · Dùng thử — còn ${days} ngày`;
+      g('trialBanner').classList.remove('hidden');
+    }
   } else {
-    gateOpen(); showPane('authPending');
+    gateOpen(); showPane('authPending'); // hết dùng thử & chưa duyệt → chờ duyệt
   }
 }
 onAuthStateChanged(auth, resolveUser);
