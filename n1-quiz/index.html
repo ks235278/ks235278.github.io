@@ -254,7 +254,7 @@
     <div class="tts-warn hidden" id="ttsWarn">Máy chưa cài giọng đọc tiếng Nhật nên không phát âm được. Mở Cài đặt Windows → Thời gian &amp; ngôn ngữ → Ngôn ngữ → thêm 日本語, rồi cài gói Giọng nói (Speech).</div>
     <div class="exp" id="exp">
       <div class="verdict" id="verdict"></div>
-      <div class="trans"><span class="trans-label">逐語訳</span><span id="expVt"></span></div>
+      <div class="trans"><span class="trans-label">逐語訳 · Dịch sát</span><span id="expVt"></span></div>
       <div class="vn" id="expVn"></div>
       <div class="jp" id="expJp"></div>
     </div>
@@ -304,9 +304,9 @@
         <button class="auth-tab on" id="tabLogin">ログイン · Đăng nhập</button>
         <button class="auth-tab" id="tabReg">新規登録 · Đăng ký</button>
       </div>
-      <label class="auth-field"><span>Email</span>
+      <label class="auth-field"><span>メール · Email</span>
         <input id="authEmail" type="email" autocomplete="email" placeholder="email@example.com"></label>
-      <label class="auth-field"><span>Mật khẩu</span>
+      <label class="auth-field"><span>パスワード · Mật khẩu</span>
         <input id="authPass" type="password" autocomplete="current-password" placeholder="••••••••"></label>
       <p class="auth-err hidden" id="authErr"></p>
       <button class="btn" id="authSubmit">ログイン · Đăng nhập</button>
@@ -614,15 +614,15 @@ function renderStats(){
     if(ra===null) return -1; if(rb===null) return 1;
     return ra-rb;
   });
-  if(!items.length){$('statsList').innerHTML='<div class="stats-empty">Không có dữ liệu.</div>';return;}
+  if(!items.length){$('statsList').innerHTML='<div class="stats-empty">データなし · Không có dữ liệu.</div>';return;}
   $('statsList').innerHTML=items.map(q=>{
     const s=stats[q._id];
     let badge,stat;
-    if(!s||s.total===0){badge='<span class="sq-badge unk">chưa làm</span>';stat='—';}
+    if(!s||s.total===0){badge='<span class="sq-badge unk">未学習 · chưa làm</span>';stat='—';}
     else{
       const p=Math.round(s.right/s.total*100);
       stat=`${s.right}/${s.total} (${p}%)`;
-      badge=p>=70?'<span class="sq-badge ok">nắm rõ</span>':'<span class="sq-badge ng">cần ôn</span>';
+      badge=p>=70?'<span class="sq-badge ok">習得 · nắm rõ</span>':'<span class="sq-badge ng">要復習 · cần ôn</span>';
     }
     const qt=q.q.replace(/⟦(.+?)⟧/,'[$1]').replace(/＿/g,'___');
     return `<div class="sq"><div class="sq-q">${qt}</div><div class="sq-stat">${stat}</div>${badge}</div>`;
