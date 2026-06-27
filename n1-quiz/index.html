@@ -228,7 +228,7 @@
 
     <div class="pick-label">出題数 · Số câu mỗi lượt</div>
     <div class="lens" id="lens">
-      <button class="pill on" data-n="10">10<small>câu yếu trước</small></button>
+      <button class="pill on" data-n="10">10<small>弱点 · câu yếu</small></button>
       <button class="pill" data-n="all">全部<small>tất cả</small></button>
     </div>
 
@@ -274,7 +274,7 @@
   <section id="statsPage" class="hidden">
     <div class="stats-head">
       <div class="stats-title">統計 · Thống kê câu hỏi</div>
-      <button class="btn-play" id="statsHomeBtn">← Quay lại</button>
+      <button class="btn-play" id="statsHomeBtn">← 戻る · Quay lại</button>
     </div>
     <div class="stats-filter" id="statsFilter"></div>
     <div class="stats-list" id="statsList"></div>
@@ -297,15 +297,15 @@
 
     <div id="authForms" class="auth-pane hidden">
       <div class="auth-tabs">
-        <button class="auth-tab on" id="tabLogin">Đăng nhập</button>
-        <button class="auth-tab" id="tabReg">Đăng ký</button>
+        <button class="auth-tab on" id="tabLogin">ログイン · Đăng nhập</button>
+        <button class="auth-tab" id="tabReg">新規登録 · Đăng ký</button>
       </div>
       <label class="auth-field"><span>Email</span>
         <input id="authEmail" type="email" autocomplete="email" placeholder="email@example.com"></label>
       <label class="auth-field"><span>Mật khẩu</span>
         <input id="authPass" type="password" autocomplete="current-password" placeholder="••••••••"></label>
       <p class="auth-err hidden" id="authErr"></p>
-      <button class="btn" id="authSubmit">Đăng nhập</button>
+      <button class="btn" id="authSubmit">ログイン · Đăng nhập</button>
       <p class="auth-hint" id="authHint"></p>
     </div>
 
@@ -313,8 +313,8 @@
       <div class="auth-icon">⏳</div>
       <p class="auth-msg">Tài khoản đang chờ duyệt</p>
       <p class="auth-sub">Chủ ứng dụng sẽ xét duyệt tài khoản của bạn. Sau khi được duyệt, bấm “Kiểm tra lại”.</p>
-      <button class="btn" id="recheckBtn">Kiểm tra lại</button>
-      <button class="btn ghost" id="pendingLogout" style="margin-top:10px">Đăng xuất</button>
+      <button class="btn" id="recheckBtn">再確認 · Kiểm tra lại</button>
+      <button class="btn ghost" id="pendingLogout" style="margin-top:10px">ログアウト · Đăng xuất</button>
     </div>
   </div>
 </div>
@@ -328,7 +328,7 @@
   <div class="admin-card">
     <div class="stats-head">
       <div class="stats-title">承認管理 · Duyệt người dùng</div>
-      <button class="btn-play" id="adminClose">← Quay lại</button>
+      <button class="btn-play" id="adminClose">← 戻る · Quay lại</button>
     </div>
     <p class="auth-sub" id="adminInfo" style="text-align:left;margin:0 0 14px"></p>
     <div class="stats-list" id="adminList"></div>
@@ -591,7 +591,7 @@ function showStats(){
 }
 function renderStats(){
   const stats=loadStats();
-  const filters=[['all','全部'],['kanji','漢字'],['goi','語彙'],['iikae','言い換え'],['bunpou','文法']];
+  const filters=[['all','全部 · Tất cả'],['kanji','漢字 · Hán tự'],['goi','語彙 · Từ vựng'],['iikae','言い換え · Đồng nghĩa'],['bunpou','文法 · Ngữ pháp']];
   $('statsFilter').innerHTML=filters.map(([k,lb])=>
     `<button class="stats-pill${statsFilter===k?' on':''}" data-f="${k}">${lb}</button>`
   ).join('');
@@ -690,7 +690,7 @@ function setMode(m){
   mode = m;
   g('tabLogin').classList.toggle('on', m==='login');
   g('tabReg').classList.toggle('on', m==='register');
-  g('authSubmit').textContent = m==='login' ? 'Đăng nhập' : 'Đăng ký';
+  g('authSubmit').textContent = m==='login' ? 'ログイン · Đăng nhập' : '新規登録 · Đăng ký';
   g('authHint').textContent = m==='login'
     ? 'Chưa có tài khoản? Bấm “Đăng ký”. Đăng ký xong cần được duyệt mới vào được.'
     : 'Sau khi đăng ký, tài khoản ở trạng thái chờ duyệt cho tới khi được chủ ứng dụng cho phép.';
@@ -817,7 +817,7 @@ async function renderAdmin(){
       row.innerHTML = `<div class="ar-mail">${r.email||'(không rõ email)'}<small>${r.approved?'✓ đã duyệt':'⏳ chờ duyệt'}</small></div>`;
       const btn = document.createElement('button');
       btn.className = 'ar-act ' + (r.approved ? 'revoke' : 'approve');
-      btn.textContent = r.approved ? 'Thu hồi' : 'Duyệt';
+      btn.textContent = r.approved ? '取消 · Thu hồi' : '承認 · Duyệt';
       btn.onclick = async () => {
         btn.disabled = true;
         try{ await updateDoc(doc(db,'users',r.id), { approved: !r.approved }); await renderAdmin(); }
