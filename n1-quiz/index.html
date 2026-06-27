@@ -314,9 +314,9 @@
     </div>
 
     <div id="authPending" class="auth-pane hidden">
-      <div class="auth-icon">⏳</div>
-      <p class="auth-msg">体験期間終了 · Đã hết thời gian dùng thử</p>
-      <p class="auth-sub">体験期間が終了しました。引き続き利用するには管理者の承認が必要です。承認後「再確認」を押してください。<br>Đã hết thời gian dùng thử. Cần được chủ ứng dụng duyệt để tiếp tục. Sau khi được duyệt, bấm “Kiểm tra lại”.</p>
+      <div class="auth-icon" id="pendingIcon">⏳</div>
+      <p class="auth-msg" id="pendingMsg">体験期間終了 · Đã hết thời gian dùng thử</p>
+      <p class="auth-sub" id="pendingSub">体験期間が終了しました。引き続き利用するには管理者の承認が必要です。承認後「再確認」を押してください。<br>Đã hết thời gian dùng thử. Cần được chủ ứng dụng duyệt để tiếp tục. Sau khi được duyệt, bấm “Kiểm tra lại”.</p>
       <button class="btn" id="recheckBtn">再確認 · Kiểm tra lại</button>
       <button class="btn ghost" id="pendingLogout" style="margin-top:10px">ログアウト · Đăng xuất</button>
     </div>
@@ -690,6 +690,18 @@ const gateOpen  = () => body.classList.add('gated');
 const gateClose = () => body.classList.remove('gated');
 const showPane  = which =>
   ['authLoading','authForms','authPending'].forEach(id => g(id).classList.toggle('hidden', id!==which));
+function showPending(type){
+  if(type==='network'){
+    g('pendingIcon').textContent = '📶';
+    g('pendingMsg').textContent  = '接続を確認してください · Cần kết nối mạng';
+    g('pendingSub').innerHTML    = '時間を確認できませんでした。ネットワークに接続してから「再確認」を押してください。<br>Không xác minh được thời gian. Hãy kết nối mạng rồi bấm “Kiểm tra lại”.';
+  } else {
+    g('pendingIcon').textContent = '⏳';
+    g('pendingMsg').textContent  = '体験期間終了 · Đã hết thời gian dùng thử';
+    g('pendingSub').innerHTML    = '体験期間が終了しました。引き続き利用するには管理者の承認が必要です。承認後「再確認」を押してください。<br>Đã hết thời gian dùng thử. Cần được chủ ứng dụng duyệt để tiếp tục. Sau khi được duyệt, bấm “Kiểm tra lại”.';
+  }
+  showPane('authPending');
+}
 
 // ── Tabs đăng nhập / đăng ký ──
 let mode = 'login';
@@ -792,9 +804,10 @@ async function resolveUser(user){
     gateOpen(); showPane('authForms'); setMode('login'); return;
   }
   const isAdmin = (user.email||'').toLowerCase() === ADMIN_EMAIL.toLowerCase();
-  let approved = false, createdMs = null;
+  let approved = false, createdMs = null, docReadOk = false;
   try{
     const snap = await getDocFromServer(doc(db,'users',user.uid)); // đọc từ server để createdAt chuẩn
+    docReadOk = true;
     if(snap.exists()){
       approved = snap.data().approved === true;
       const c = snap.data().createdAt;
@@ -802,17 +815,25 @@ async function resolveUser(user){
     } else {
       await setDoc(doc(db,'users',user.uid), { email:user.email, approved:false, createdAt:serverTimestamp() });
     }
-  }catch(e){ /* đọc lỗi → coi như chưa duyệt */ }
+  }catch(e){ /* không đọc được hồ sơ từ server → fail-closed bên dưới */ }
 
-  // Chỉ người chưa được duyệt mới cần tính hạn dùng thử (theo GIỜ SERVER)
-  let inTrial = false, days = 0;
+  // Người chưa được duyệt: phải xác minh được GIỜ SERVER mới cho vào (chống chỉnh đồng hồ & mở offline từ cache)
+  let inTrial = false, days = 0, blocked = null;
   if(!isAdmin && !approved){
-    let serverNow = Date.now();
-    try{ serverNow = await getServerNow(user.uid); }catch(e){ /* mất mạng → tạm dùng giờ máy */ }
-    if(createdMs == null) createdMs = serverNow; // hồ sơ vừa tạo
-    const trialLeft = TRIAL_MS - (serverNow - createdMs);
-    inTrial = trialLeft > 0;
-    days = Math.max(1, Math.ceil(trialLeft / (24*60*60*1000)));
+    if(!docReadOk){
+      blocked = 'network';
+    } else {
+      let serverNow = null;
+      try{ serverNow = await getServerNow(user.uid); }catch(e){ serverNow = null; }
+      if(serverNow == null){
+        blocked = 'network'; // không lấy được giờ server → chặn, KHÔNG lùi về giờ máy
+      } else {
+        if(createdMs == null) createdMs = serverNow; // hồ sơ vừa tạo (mới đăng ký, không xoá/sửa được do rules)
+        const trialLeft = TRIAL_MS - (serverNow - createdMs);
+        inTrial = trialLeft > 0;
+        days = Math.max(1, Math.ceil(trialLeft / (24*60*60*1000)));
+      }
+    }
   }
 
   if(isAdmin || approved || inTrial){
@@ -826,7 +847,7 @@ async function resolveUser(user){
       g('trialBanner').classList.remove('hidden');
     }
   } else {
-    gateOpen(); showPane('authPending'); // hết dùng thử & chưa duyệt → chờ duyệt
+    gateOpen(); showPending(blocked === 'network' ? 'network' : 'trial');
   }
 }
 onAuthStateChanged(auth, resolveUser);
