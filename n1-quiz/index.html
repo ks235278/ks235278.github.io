@@ -366,6 +366,7 @@ function recordAnswer(id,correct){
   if(!s[id]) s[id]={right:0,total:0};
   s[id].total++; if(correct) s[id].right++;
   saveStats(s);
+  if(window.N1_persistStat) window.N1_persistStat(id, s[id]); // đồng bộ lên Firestore theo tài khoản
 }
 
 // ── Smart 10-question selector ─────────────────────────────────────
@@ -732,9 +733,36 @@ g('authSubmit').onclick = async () => {
 g('pendingLogout').onclick = () => signOut(auth);
 g('recheckBtn').onclick    = () => location.reload();
 
+// ── Thống kê thành tích theo từng tài khoản (Firestore: stats/{uid}) ──
+let currentUid = null, statsCache = {}, writeTimer = null;
+async function loadUserStats(uid){
+  statsCache = {};
+  try{
+    const snap = await getDoc(doc(db,'stats',uid));
+    if(snap.exists() && snap.data().entries) statsCache = snap.data().entries;
+  }catch(e){ /* lỗi đọc → bắt đầu rỗng */ }
+  try{ localStorage.setItem('n1_stats', JSON.stringify(statsCache)); }catch(e){} // nạp vào cache local cho app dùng
+}
+function flushStats(){
+  if(!currentUid) return;
+  setDoc(doc(db,'stats',currentUid),
+    { entries: statsCache, updatedAt: serverTimestamp() }, { merge:true }).catch(()=>{});
+}
+// App gọi mỗi khi trả lời một câu → gộp & ghi sau 1.2s để giảm số lần ghi
+window.N1_persistStat = (id, val) => {
+  statsCache[String(id)] = val;
+  if(writeTimer) clearTimeout(writeTimer);
+  writeTimer = setTimeout(flushStats, 1200);
+};
+window.addEventListener('pagehide', () => { if(writeTimer){ clearTimeout(writeTimer); flushStats(); } });
+
 // ── Trạng thái đăng nhập ──
 async function resolveUser(user){
-  if(!user){ gateOpen(); showPane('authForms'); setMode('login'); return; }
+  if(!user){
+    currentUid = null;
+    try{ localStorage.removeItem('n1_stats'); }catch(e){} // xóa cache để người sau không thấy thống kê người trước
+    gateOpen(); showPane('authForms'); setMode('login'); return;
+  }
   const isAdmin = (user.email||'').toLowerCase() === ADMIN_EMAIL.toLowerCase();
   let approved = false;
   try{
@@ -744,6 +772,8 @@ async function resolveUser(user){
   }catch(e){ /* đọc lỗi → coi như chưa duyệt */ }
 
   if(isAdmin || approved){
+    currentUid = user.uid;
+    await loadUserStats(user.uid);   // tải thành tích của chính người này TRƯỚC khi mở app
     gateClose();
     if(isAdmin){ g('adminBtn').classList.remove('hidden'); setupAdmin(); }
   } else {
