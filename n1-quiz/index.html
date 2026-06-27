@@ -691,9 +691,9 @@ function setMode(m){
   g('tabLogin').classList.toggle('on', m==='login');
   g('tabReg').classList.toggle('on', m==='register');
   g('authSubmit').textContent = m==='login' ? 'ログイン · Đăng nhập' : '新規登録 · Đăng ký';
-  g('authHint').textContent = m==='login'
-    ? 'Chưa có tài khoản? Bấm “Đăng ký”. Đăng ký xong cần được duyệt mới vào được.'
-    : 'Sau khi đăng ký, tài khoản ở trạng thái chờ duyệt cho tới khi được chủ ứng dụng cho phép.';
+  g('authHint').innerHTML = m==='login'
+    ? 'アカウントをお持ちでない方は「新規登録」へ。登録後、承認されるまでご利用いただけません。<br>Chưa có tài khoản? Bấm “Đăng ký”. Đăng ký xong cần được duyệt mới vào được.'
+    : '登録後、管理者の承認を受けるまではご利用いただけません。<br>Sau khi đăng ký, tài khoản ở trạng thái chờ duyệt cho tới khi được chủ ứng dụng cho phép.';
   g('authPass').setAttribute('autocomplete', m==='login' ? 'current-password' : 'new-password');
   hideErr();
 }
