@@ -67,7 +67,7 @@
   .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
   .counter{font-family:var(--display);font-variant-numeric:tabular-nums;font-size:.92rem;color:var(--muted)}
   .counter b{color:var(--cream);font-weight:600}
-  .tag{font-family:var(--jp);font-size:.7rem;letter-spacing:.18em;color:var(--gold);border:1px solid var(--gold-dim);border-radius:999px;padding:4px 11px;text-transform:uppercase}
+  .tag{font-family:var(--jp);font-size:.7rem;letter-spacing:.05em;color:var(--gold);border:1px solid var(--gold-dim);border-radius:999px;padding:4px 11px;text-align:right;line-height:1.35;max-width:60%}
   .bar{height:3px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:28px}
   .bar > i{display:block;height:100%;background:var(--gold);width:0;transition:width .4s cubic-bezier(.4,0,.2,1)}
 
@@ -166,6 +166,7 @@
   .auth-card{width:100%;max-width:400px}
   .auth-brand{text-align:center;margin-bottom:30px}
   .auth-logo{font-family:var(--jp);font-weight:700;font-size:2rem;color:var(--cream);margin-top:.34em}
+  .auth-tagline{font-family:var(--vn);font-style:italic;color:var(--muted);font-size:.92rem;margin-top:.5em}
   .auth-pane{display:flex;flex-direction:column}
   .auth-tabs{display:flex;gap:6px;margin-bottom:22px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:5px}
   .auth-tab{flex:1;font:inherit;font-family:var(--jp);font-weight:600;font-size:.95rem;color:var(--muted);
@@ -243,7 +244,7 @@
   <section id="quiz" class="hidden">
     <div class="topbar">
       <div class="counter">問 <b id="cur">1</b> / <span id="tot">20</span></div>
-      <div class="tag" id="catTag">文法</div>
+      <div class="tag" id="catTag">文法 · Ngữ pháp</div>
     </div>
     <div class="bar"><i id="prog"></i></div>
     <div class="instr" id="instr"></div>
@@ -293,6 +294,7 @@
     <div class="auth-brand">
       <div class="eyebrow">日本語能力試験 N1</div>
       <div class="auth-logo">対策クイズ</div>
+      <div class="auth-tagline">Luyện thi JLPT N1 — Hán tự · Từ vựng · Ngữ pháp</div>
     </div>
 
     <div id="authLoading" class="auth-pane">
@@ -505,7 +507,7 @@ function showQ(){
   const q=queue[idx];
   $('cur').textContent=idx+1;
   $('prog').style.width=(idx/queue.length*100)+'%';
-  $('catTag').textContent=CAT[q.cat].jp;
+  $('catTag').textContent=CAT[q.cat].jp+' · '+CAT[q.cat].vn;
   $('instr').innerHTML=`${CAT[q.cat].instrVn}<span class="jp">${CAT[q.cat].instrJp}</span>`;
   const qb=$('qbox'); qb.classList.remove('revealed'); qb.innerHTML=renderQ(q);
   const o=$('opts'); o.innerHTML='';
@@ -843,7 +845,7 @@ async function resolveUser(user){
     g('logoutBtn').classList.remove('hidden');
     if(isAdmin){ g('adminBtn').classList.remove('hidden'); setupAdmin(); }
     if(inTrial){
-      g('trialBanner').textContent = `体験中 · Dùng thử — còn ${days} ngày`;
+      g('trialBanner').textContent = `体験中・残り${days}日 · Dùng thử — còn ${days} ngày`;
       g('trialBanner').classList.remove('hidden');
     }
   } else {
