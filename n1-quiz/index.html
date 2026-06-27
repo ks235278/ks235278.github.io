@@ -704,23 +704,23 @@ const showErr = msg => { const e=g('authErr'); e.textContent=msg; e.classList.re
 const hideErr = ()  => g('authErr').classList.add('hidden');
 
 const ERR = {
-  'auth/invalid-email':'Email không hợp lệ.',
-  'auth/missing-password':'Hãy nhập mật khẩu.',
-  'auth/weak-password':'Mật khẩu quá ngắn (cần ít nhất 6 ký tự).',
-  'auth/email-already-in-use':'Email này đã được đăng ký. Hãy chọn “Đăng nhập”.',
-  'auth/invalid-credential':'Email hoặc mật khẩu không đúng.',
-  'auth/wrong-password':'Mật khẩu không đúng.',
-  'auth/user-not-found':'Không tìm thấy tài khoản này.',
-  'auth/too-many-requests':'Thử quá nhiều lần. Hãy đợi một lát rồi thử lại.',
-  'auth/network-request-failed':'Lỗi mạng. Kiểm tra kết nối internet.'
+  'auth/invalid-email':'メールアドレスが正しくありません。· Email không hợp lệ.',
+  'auth/missing-password':'パスワードを入力してください。· Hãy nhập mật khẩu.',
+  'auth/weak-password':'パスワードが短すぎます（6文字以上）。· Mật khẩu quá ngắn (cần ít nhất 6 ký tự).',
+  'auth/email-already-in-use':'このメールは登録済みです。「ログイン」を選んでください。· Email này đã được đăng ký. Hãy chọn “Đăng nhập”.',
+  'auth/invalid-credential':'メールまたはパスワードが違います。· Email hoặc mật khẩu không đúng.',
+  'auth/wrong-password':'パスワードが違います。· Mật khẩu không đúng.',
+  'auth/user-not-found':'アカウントが見つかりません。· Không tìm thấy tài khoản này.',
+  'auth/too-many-requests':'試行回数が多すぎます。しばらくしてからお試しください。· Thử quá nhiều lần. Hãy đợi một lát rồi thử lại.',
+  'auth/network-request-failed':'ネットワークエラー。接続を確認してください。· Lỗi mạng. Kiểm tra kết nối internet.'
 };
-const errMsg = code => ERR[code] || ('Có lỗi xảy ra: ' + code);
+const errMsg = code => ERR[code] || ('エラーが発生しました · Có lỗi xảy ra: ' + code);
 
 // ── Gửi form ──
 g('authSubmit').onclick = async () => {
   const email = g('authEmail').value.trim();
   const pass  = g('authPass').value;
-  if(!email || !pass){ showErr('Hãy nhập đủ email và mật khẩu.'); return; }
+  if(!email || !pass){ showErr('メールとパスワードを入力してください。· Hãy nhập đủ email và mật khẩu.'); return; }
   g('authSubmit').disabled = true; hideErr();
   try{
     if(mode==='register'){
@@ -801,7 +801,7 @@ function setupAdmin(){
 }
 async function renderAdmin(){
   const list = g('adminList');
-  list.innerHTML = '<div class="stats-empty">Đang tải…</div>';
+  list.innerHTML = '<div class="stats-empty">読み込み中… · Đang tải…</div>';
   try{
     const snap = await getDocs(collection(db,'users'));
     let rows = [];
@@ -809,24 +809,24 @@ async function renderAdmin(){
     rows = rows.filter(r => (r.email||'').toLowerCase() !== ADMIN_EMAIL.toLowerCase()); // ẩn chính admin
     rows.sort((a,b) => (a.approved?1:0) - (b.approved?1:0)); // chờ duyệt lên đầu
     const pending = rows.filter(r => !r.approved).length;
-    g('adminInfo').textContent = `Tổng ${rows.length} người · ${pending} đang chờ duyệt.`;
-    if(!rows.length){ list.innerHTML = '<div class="stats-empty">Chưa có ai đăng ký.</div>'; return; }
+    g('adminInfo').textContent = `合計${rows.length}人・承認待ち${pending}人 · Tổng ${rows.length} người, ${pending} đang chờ duyệt.`;
+    if(!rows.length){ list.innerHTML = '<div class="stats-empty">まだ登録者がいません。· Chưa có ai đăng ký.</div>'; return; }
     list.innerHTML = '';
     rows.forEach(r => {
       const row = document.createElement('div'); row.className = 'admin-row';
-      row.innerHTML = `<div class="ar-mail">${r.email||'(không rõ email)'}<small>${r.approved?'✓ đã duyệt':'⏳ chờ duyệt'}</small></div>`;
+      row.innerHTML = `<div class="ar-mail">${r.email||'(メール不明 · không rõ email)'}<small>${r.approved?'✓ 承認済み · đã duyệt':'⏳ 承認待ち · chờ duyệt'}</small></div>`;
       const btn = document.createElement('button');
       btn.className = 'ar-act ' + (r.approved ? 'revoke' : 'approve');
       btn.textContent = r.approved ? '取消 · Thu hồi' : '承認 · Duyệt';
       btn.onclick = async () => {
         btn.disabled = true;
         try{ await updateDoc(doc(db,'users',r.id), { approved: !r.approved }); await renderAdmin(); }
-        catch(e){ btn.disabled = false; alert('Lỗi: ' + (e.code || e.message)); }
+        catch(e){ btn.disabled = false; alert('エラー · Lỗi: ' + (e.code || e.message)); }
       };
       row.appendChild(btn);
       list.appendChild(row);
     });
-  }catch(e){ list.innerHTML = '<div class="stats-empty">Lỗi tải danh sách: ' + (e.code||e.message) + '</div>'; }
+  }catch(e){ list.innerHTML = '<div class="stats-empty">リスト読み込みエラー · Lỗi tải danh sách: ' + (e.code||e.message) + '</div>'; }
 }
 </script>
 </body>
