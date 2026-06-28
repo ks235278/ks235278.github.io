@@ -692,6 +692,7 @@ const ADMIN_EMAIL = "ks235278@kaichi.ac.jp";
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+auth.useDeviceLanguage(); // email (đặt lại mật khẩu…) khớp ngôn ngữ trình duyệt người dùng; đổi 'vi'/'ja' nếu muốn cố định
 const db   = getFirestore(app);
 
 const g = id => document.getElementById(id);
