@@ -635,6 +635,7 @@ function finish(){
       <span class="bs">${p.right}/${p.total}</span></div>`;
   }).join('');
   $('newSetBtn').classList.toggle('hidden', roundLen==='all');
+  flushStats(); // MỐC ghi Firestore: kết thúc vòng → đồng bộ cả vòng trong 1 lần ghi
 }
 
 // ── Stats page ─────────────────────────────────────────────────────
@@ -822,15 +823,15 @@ g('forgotBtn').onclick = async () => {
 };
 
 // ── Đăng xuất ──
-function doLogout(){ if(writeTimer){ clearTimeout(writeTimer); flushStats(); } signOut(auth); } // ghi nốt thống kê trước khi thoát
+function doLogout(){ flushStats(); signOut(auth); } // ghi nốt thống kê trước khi thoát
 g('pendingLogout').onclick = () => signOut(auth);
 g('logoutBtn').onclick     = doLogout;
 g('recheckBtn').onclick    = () => location.reload();
 
 // ── Thống kê thành tích theo từng tài khoản (Firestore: stats/{uid}) ──
-let currentUid = null, statsCache = {}, writeTimer = null;
+let currentUid = null, statsCache = {}, statsDirty = false;
 async function loadUserStats(uid){
-  statsCache = {};
+  statsCache = {}; statsDirty = false;   // vừa nạp từ server → chưa có gì cần ghi lại
   try{
     const snap = await getDoc(doc(db,'stats',uid));
     if(snap.exists() && snap.data().entries) statsCache = snap.data().entries;
@@ -846,17 +847,21 @@ async function getServerNow(uid){
   return (t && t.toMillis) ? t.toMillis() : Date.now();
 }
 function flushStats(){
-  if(!currentUid) return;
+  if(!currentUid || !statsDirty) return;     // chỉ ghi khi có thay đổi → không ghi thừa
+  statsDirty = false;
   setDoc(doc(db,'stats',currentUid),
-    { entries: statsCache, updatedAt: serverTimestamp() }, { merge:true }).catch(()=>{});
+    { entries: statsCache, updatedAt: serverTimestamp() }, { merge:true })
+    .catch(()=>{ statsDirty = true; });       // ghi lỗi → đánh dấu lại để mốc sau thử lại
 }
-// App gọi mỗi khi trả lời một câu → gộp & ghi sau 1.2s để giảm số lần ghi
+// App gọi mỗi khi trả lời một câu → CHỈ cập nhật bộ nhớ + localStorage (trong recordAnswer).
+// Ghi Firestore dồn vào các MỐC (kết thúc vòng / đóng tab / chuyển nền / đăng xuất) để
+// tiết kiệm hạn mức ghi — 1 vòng 10 câu chỉ tốn ~1 lần ghi thay vì ~10.
 window.N1_persistStat = (id, val) => {
   statsCache[String(id)] = val;
-  if(writeTimer) clearTimeout(writeTimer);
-  writeTimer = setTimeout(flushStats, 1200);
+  statsDirty = true;
 };
-window.addEventListener('pagehide', () => { if(writeTimer){ clearTimeout(writeTimer); flushStats(); } });
+window.addEventListener('pagehide', flushStats);
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') flushStats(); });
 
 // ── Trạng thái đăng nhập ──
 const TRIAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 ngày dùng thử kể từ lúc đăng ký
