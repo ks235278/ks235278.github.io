@@ -231,6 +231,30 @@
     border:1px solid var(--line);border-radius:999px;width:29px;height:29px;display:grid;place-items:center;
     cursor:pointer;flex:0 0 auto;transition:.16s}
   .quiz-exit:hover{border-color:var(--red);color:var(--red)}
+
+  .name-edit{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 15px;margin-bottom:16px}
+  .name-edit-label{display:block;font-family:var(--jp);font-size:.74rem;color:var(--muted);margin-bottom:9px}
+  .name-edit-row{display:flex;gap:8px}
+  .name-edit-row input{flex:1;min-width:0;font:inherit;font-family:var(--vn);color:var(--cream);background:var(--bg-soft);
+    border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+  .name-edit-row input:focus{outline:none;border-color:var(--gold-dim)}
+  .name-save{font:inherit;font-family:var(--jp);font-weight:600;font-size:.82rem;white-space:nowrap;cursor:pointer;
+    color:var(--gold);border:1px solid var(--gold-dim);background:transparent;border-radius:9px;padding:0 16px;transition:.16s}
+  .name-save:hover{color:var(--cream);border-color:var(--gold)}
+  .name-hint{font-family:var(--vn);font-style:italic;color:var(--faint);font-size:.78rem;margin:10px 0 0;line-height:1.5}
+
+  .lb{display:flex;align-items:center;gap:13px;background:var(--card);border:1px solid var(--line);
+    border-radius:11px;padding:11px 14px}
+  .lb.me{border-color:var(--gold);background:var(--green-bg)}
+  .lb .lb-rank{font-family:var(--display);font-variant-numeric:tabular-nums;font-size:1.05rem;font-weight:600;
+    color:var(--muted);min-width:30px;text-align:center;flex:0 0 auto}
+  .lb.top1 .lb-rank{color:#e6c34a}.lb.top2 .lb-rank{color:#cdd2d6}.lb.top3 .lb-rank{color:#cf9b6a}
+  .lb .lb-name{flex:1;min-width:0;font-family:var(--vn);font-size:.98rem;color:var(--cream);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lb .lb-name .you{font-family:var(--jp);font-size:.66rem;color:var(--gold);margin-left:7px}
+  .lb .lb-score{font-family:var(--display);font-variant-numeric:tabular-nums;color:var(--gold);font-weight:600;
+    font-size:1.05rem;text-align:right;flex:0 0 auto}
+  .lb .lb-score small{display:block;font-family:var(--vn);font-weight:400;color:var(--faint);font-size:.72rem}
 </style>
 </head>
 <body class="gated">
@@ -258,6 +282,7 @@
     </div>
 
     <button class="btn" id="startBtn">演習を始める<span class="vn">Bắt đầu luyện tập</span></button>
+    <button class="btn ghost" id="leaderBtn" style="margin-top:10px">ランキング · Bảng xếp hạng</button>
     <button class="btn ghost" id="statsBtn" style="margin-top:10px">統計 · Xem thống kê từng câu</button>
   </section>
 
@@ -306,6 +331,22 @@
     </div>
     <div class="stats-filter" id="statsFilter"></div>
     <div class="stats-list" id="statsList"></div>
+  </section>
+
+  <section id="leaderPage" class="hidden">
+    <div class="stats-head">
+      <div class="stats-title">ランキング · Bảng xếp hạng</div>
+      <button class="btn-play" id="leaderHomeBtn">← 戻る · Quay lại</button>
+    </div>
+    <div class="name-edit">
+      <span class="name-edit-label">あなたの表示名 · Biệt danh của bạn</span>
+      <div class="name-edit-row">
+        <input id="nameInput" type="text" maxlength="20" placeholder="Đặt biệt danh…" autocomplete="off">
+        <button class="name-save" id="nameSaveBtn">保存 · Lưu</button>
+      </div>
+      <p class="name-hint">Xếp theo tổng số câu trả lời đúng. Mọi người đều thấy biệt danh này.</p>
+    </div>
+    <div class="stats-list" id="leaderList"></div>
   </section>
 
   <div class="footer">頑張って · CỐ LÊN</div>
@@ -876,12 +917,16 @@ g('logoutBtn').onclick     = doLogout;
 g('recheckBtn').onclick    = () => location.reload();
 
 // ── Thống kê thành tích theo từng tài khoản (Firestore: stats/{uid}) ──
-let currentUid = null, statsCache = {}, statsDirty = false;
+let currentUid = null, statsCache = {}, statsDirty = false, currentName = '', amAdmin = false;
+const defaultName = uid => '学習者#' + (uid||'').slice(-4).toUpperCase();   // biệt danh ẩn danh mặc định
 async function loadUserStats(uid){
-  statsCache = {}; statsDirty = false;   // vừa nạp từ server → chưa có gì cần ghi lại
+  statsCache = {}; statsDirty = false; currentName = defaultName(uid);   // vừa nạp từ server → chưa có gì cần ghi lại
   try{
     const snap = await getDoc(doc(db,'stats',uid));
-    if(snap.exists() && snap.data().entries) statsCache = snap.data().entries;
+    if(snap.exists()){
+      if(snap.data().entries) statsCache = snap.data().entries;
+      if(snap.data().name)    currentName = snap.data().name;   // biệt danh đã đặt trước đó
+    }
   }catch(e){ /* lỗi đọc → bắt đầu rỗng */ }
   try{ localStorage.setItem('n1_stats', JSON.stringify(statsCache)); }catch(e){} // nạp vào cache local cho app dùng
 }
@@ -893,12 +938,21 @@ async function getServerNow(uid){
   const t = snap.exists() ? snap.data().serverCheck : null;
   return (t && t.toMillis) ? t.toMillis() : Date.now();
 }
+function aggStats(){                          // tổng hợp nhanh từ statsCache (không cần DATA)
+  let correct=0, answered=0, seen=0;
+  for(const id in statsCache){ const s=statsCache[id]||{}, r=+s.right||0, t=+s.total||0; correct+=r; answered+=t; if(t>0) seen++; }
+  return { correct, answered, seen };
+}
 function flushStats(){
   if(!currentUid || !statsDirty) return;     // chỉ ghi khi có thay đổi → không ghi thừa
   statsDirty = false;
   setDoc(doc(db,'stats',currentUid),
-    { entries: statsCache, updatedAt: serverTimestamp() }, { merge:true })
+    { entries: statsCache, name: currentName, updatedAt: serverTimestamp() }, { merge:true })
     .catch(()=>{ statsDirty = true; });       // ghi lỗi → đánh dấu lại để mốc sau thử lại
+  if(!amAdmin){                               // bản CÔNG KHAI gọn cho bảng xếp hạng (admin không lên bảng)
+    setDoc(doc(db,'leaderboard',currentUid),
+      { name: currentName, ...aggStats(), updatedAt: serverTimestamp() }, { merge:true }).catch(()=>{});
+  }
 }
 // App gọi mỗi khi trả lời một câu → CHỈ cập nhật bộ nhớ + localStorage (trong recordAnswer).
 // Ghi Firestore dồn vào các MỐC (kết thúc vòng / đóng tab / chuyển nền / đăng xuất) để
@@ -910,6 +964,53 @@ window.N1_persistStat = (id, val) => {
 window.N1_flush = flushStats;   // nút "Thoát" gọi để đồng bộ tiến độ trước khi rời màn làm bài
 window.addEventListener('pagehide', flushStats);
 document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') flushStats(); });
+
+// ── Bảng xếp hạng công khai (Firestore: leaderboard/{uid}) ──────────
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function setName(){
+  let v = (g('nameInput').value||'').trim().replace(/\s+/g,' ').slice(0,20);
+  if(!v) v = defaultName(currentUid);
+  currentName = v; g('nameInput').value = v;
+  statsDirty = true; flushStats();    // ghi name mới (kèm bản công khai)
+  await openLeaderboard();            // tải lại để thấy tên mới
+}
+async function openLeaderboard(){
+  ['start','quiz','result','statsPage'].forEach(id => g(id).classList.add('hidden'));
+  g('leaderPage').classList.remove('hidden'); window.scrollTo(0,0);
+  g('nameInput').value = currentName;
+  const list = g('leaderList');
+  list.innerHTML = '<div class="stats-empty">読み込み中… · Đang tải…</div>';
+  try{
+    const snap = await getDocs(collection(db,'leaderboard'));
+    let rows = [];
+    snap.forEach(d => { const x = d.data()||{};
+      rows.push({ id:d.id, name:x.name||defaultName(d.id), correct:+x.correct||0, answered:+x.answered||0 }); });
+    rows = rows.filter(r => r.answered > 0);                       // chỉ ai đã làm câu nào
+    rows.sort((a,b) => b.correct - a.correct || b.answered - a.answered);
+    if(!rows.length){ list.innerHTML = '<div class="stats-empty">まだ記録がありません · Chưa có ai lên bảng. Hãy làm bài để xuất hiện!</div>'; return; }
+    list.innerHTML = '';
+    rows.forEach((r, i) => {
+      const rank = i + 1, acc = r.answered ? Math.round(r.correct/r.answered*100) : 0, me = r.id === currentUid;
+      const row = document.createElement('div');
+      row.className = 'lb' + (me ? ' me' : '') + (rank<=3 ? ' top'+rank : '');
+      row.innerHTML = `<div class="lb-rank">${rank}</div>`;
+      const nameEl = document.createElement('div'); nameEl.className = 'lb-name';
+      nameEl.innerHTML = esc(r.name) + (me ? '<span class="you">あなた · bạn</span>' : '');  // escape chống XSS
+      row.appendChild(nameEl);
+      const sc = document.createElement('div'); sc.className = 'lb-score';
+      sc.innerHTML = `${r.correct}<small>đúng · ${acc}%</small>`;
+      row.appendChild(sc);
+      list.appendChild(row);
+    });
+  }catch(e){
+    list.innerHTML = '<div class="stats-empty">読み込みエラー · Lỗi tải bảng (' + (e.code||e.message)
+      + ').<br>Có thể cần thêm quyền đọc <b>leaderboard</b> trong Firestore Rules.</div>';
+  }
+}
+g('leaderBtn').onclick = openLeaderboard;
+g('leaderHomeBtn').onclick = () => { g('leaderPage').classList.add('hidden'); g('start').classList.remove('hidden'); window.scrollTo(0,0); };
+g('nameSaveBtn').onclick = setName;
+g('nameInput').addEventListener('keydown', e => { if(e.key==='Enter') setName(); });
 
 // ── Trạng thái đăng nhập ──
 const TRIAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 ngày dùng thử kể từ lúc đăng ký
@@ -956,7 +1057,7 @@ async function resolveUser(user){
   }
 
   if(isAdmin || approved || inTrial){
-    currentUid = user.uid;
+    currentUid = user.uid; amAdmin = isAdmin;   // admin không xuất hiện trên bảng xếp hạng công khai
     await loadUserStats(user.uid);   // tải thành tích của chính người này TRƯỚC khi mở app
     gateClose();
     g('logoutBtn').classList.remove('hidden');
