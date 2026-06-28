@@ -179,7 +179,9 @@
     border:1px solid var(--line);border-radius:10px;padding:13px 14px;transition:border-color .16s}
   .auth-field input:focus{outline:none;border-color:var(--gold)}
   .auth-err{font-family:var(--vn);color:var(--red);font-size:.9rem;margin-bottom:12px;line-height:1.5}
-  .auth-note{font-family:var(--vn);color:var(--green);font-size:.9rem;margin-bottom:12px;line-height:1.5}
+  .auth-note{font-family:var(--vn);color:var(--green);font-size:.9rem;margin-bottom:12px;line-height:1.55;
+    background:var(--green-bg);border:1px solid var(--green);border-radius:10px;padding:11px 13px}
+  .auth-note b{color:var(--cream)}
   .auth-link{display:block;width:100%;text-align:center;background:none;border:none;cursor:pointer;
     font:inherit;font-family:var(--vn);font-style:italic;color:var(--muted);font-size:.88rem;
     margin-top:14px;padding:4px;transition:color .16s}
@@ -733,7 +735,7 @@ g('tabReg').onclick   = () => setMode('register');
 
 const showErr  = msg => { const e=g('authErr'); e.textContent=msg; e.classList.remove('hidden'); g('authNote').classList.add('hidden'); };
 const hideErr  = ()  => g('authErr').classList.add('hidden');
-const showNote = msg => { const n=g('authNote'); n.textContent=msg; n.classList.remove('hidden'); g('authErr').classList.add('hidden'); };
+const showNote = msg => { const n=g('authNote'); n.innerHTML=msg; n.classList.remove('hidden'); g('authErr').classList.add('hidden'); };
 const hideNote = ()  => g('authNote').classList.add('hidden');
 
 const ERR = {
@@ -777,7 +779,7 @@ g('forgotBtn').onclick = async () => {
   g('forgotBtn').disabled = true;
   try{
     await sendPasswordResetEmail(auth, email);
-    showNote('再設定メールを送信しました。受信箱（迷惑メールも）をご確認ください。· Đã gửi email đặt lại mật khẩu. Hãy kiểm tra hộp thư (kể cả mục Spam).');
+    showNote('再設定メールを送信しました。届かない場合は<b>迷惑メール / スパム</b>フォルダもご確認ください（送信元: noreply@n1-quiz.firebaseapp.com）。<br>Đã gửi email đặt lại mật khẩu. Nếu không thấy trong Hộp thư đến, hãy kiểm tra thư mục <b>Spam / Thư rác</b> (người gửi: noreply@n1-quiz.firebaseapp.com).');
   }catch(e){ showErr(errMsg(e.code)); }
   finally{ g('forgotBtn').disabled = false; }
 };
