@@ -426,7 +426,38 @@ if(ttsOK){
   refreshVoices();
   speechSynthesis.onvoiceschanged = refreshVoices;
 }
+// ── Audio neural tạo sẵn (edge-tts) ─────────────────────────────────
+// Ưu tiên phát file MP3 giọng neural (audio/<hash>.mp3). Thiếu file / lỗi
+// → tự fallback về Web Speech API bên dưới, KHÔNG bao giờ chặn giao diện.
+function fnv1a(str){                      // PHẢI khớp fnv1a() trong tools/gen_audio.py
+  const bytes = new TextEncoder().encode(str);
+  let h = 0xcbf29ce484222325n;
+  const prime = 0x100000001b3n, mask = 0xffffffffffffffffn;
+  for(const b of bytes){ h ^= BigInt(b); h = (h * prime) & mask; }
+  return h.toString(16).padStart(16,'0');
+}
+let audioSet = null;                      // Set<hash> clip có sẵn (null = chưa tải manifest)
+fetch('audio/manifest.json').then(r=>r.ok?r.json():null)
+  .then(j=>{ if(Array.isArray(j)) audioSet = new Set(j); }).catch(()=>{});
+let curAudio = null;
+function stopAudio(){
+  if(curAudio){ try{ curAudio.pause(); }catch(e){} curAudio = null; }
+  if(ttsOK && (speechSynthesis.speaking || speechSynthesis.pending)) speechSynthesis.cancel();
+}
 function speak(text){
+  if(!text) return;
+  let h = null; try{ h = fnv1a(text); }catch(e){}
+  // có file (hoặc manifest chưa tải xong → cứ thử, lỗi thì fallback)
+  if(h && (audioSet === null || audioSet.has(h))){
+    stopAudio();
+    const a = new Audio('audio/' + h + '.mp3');
+    curAudio = a;
+    a.play().catch(()=>{ curAudio = null; speakTTS(text); });  // file lỗi → Web Speech
+    return;
+  }
+  speakTTS(text);
+}
+function speakTTS(text){                   // Fallback: bộ đọc có sẵn của trình duyệt
   if(!ttsOK || !text) return;
   try{
     if(!voicesReady) refreshVoices();
@@ -531,8 +562,13 @@ function showQ(){
   });
   $('exp').classList.remove('show');
   $('nextBtn').classList.add('hidden');
-  $('playBtn').classList.remove('hidden');
-  $('playBtn').onclick=()=>speak(sentenceText(q,''));
+  // Kanji hỏi CÁCH ĐỌC từ bôi đen → đọc câu đề sẽ lộ đáp án. Ẩn nút đến khi trả lời xong.
+  if(q.cat==='kanji'){
+    $('playBtn').classList.add('hidden');
+  } else {
+    $('playBtn').classList.remove('hidden');
+    $('playBtn').onclick=()=>speak(sentenceText(q,''));
+  }
 }
 
 // ── Choose answer ──────────────────────────────────────────────────
@@ -567,6 +603,7 @@ function choose(btn,opt,q){
   const last=idx===queue.length-1;
   $('nextBtn').textContent=last?'結果を見る — Xem kết quả':'次の問題 — Câu tiếp theo';
   $('nextBtn').classList.remove('hidden');
+  $('playBtn').classList.remove('hidden'); // kanji bị ẩn trước đó → hiện lại sau khi trả lời
   $('playBtn').onclick=()=>speak(sentenceText(q,correctOpt.t)); // 再生: đọc trọn câu ĐÃ ghép đáp án
 }
 
