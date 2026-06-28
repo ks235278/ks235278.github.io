@@ -179,6 +179,12 @@
     border:1px solid var(--line);border-radius:10px;padding:13px 14px;transition:border-color .16s}
   .auth-field input:focus{outline:none;border-color:var(--gold)}
   .auth-err{font-family:var(--vn);color:var(--red);font-size:.9rem;margin-bottom:12px;line-height:1.5}
+  .auth-note{font-family:var(--vn);color:var(--green);font-size:.9rem;margin-bottom:12px;line-height:1.5}
+  .auth-link{display:block;width:100%;text-align:center;background:none;border:none;cursor:pointer;
+    font:inherit;font-family:var(--vn);font-style:italic;color:var(--muted);font-size:.88rem;
+    margin-top:14px;padding:4px;transition:color .16s}
+  .auth-link:hover{color:var(--gold)}
+  .auth-link:disabled{opacity:.5;cursor:default}
   .auth-hint{font-family:var(--vn);color:var(--faint);font-size:.84rem;text-align:center;margin-top:16px;line-height:1.55}
   .auth-msg{font-family:var(--jp);font-size:1.12rem;color:var(--cream);text-align:center;line-height:1.7}
   .auth-sub{font-family:var(--vn);color:var(--muted);font-size:.9rem;text-align:center;margin:10px 0 20px;line-height:1.6}
@@ -311,7 +317,9 @@
       <label class="auth-field"><span>パスワード · Mật khẩu</span>
         <input id="authPass" type="password" autocomplete="current-password" placeholder="••••••••"></label>
       <p class="auth-err hidden" id="authErr"></p>
+      <p class="auth-note hidden" id="authNote"></p>
       <button class="btn" id="authSubmit">ログイン · Đăng nhập</button>
+      <button class="auth-link hidden" id="forgotBtn">パスワードをお忘れですか · Quên mật khẩu?</button>
       <p class="auth-hint" id="authHint"></p>
     </div>
 
@@ -665,7 +673,7 @@ $('statsHomeBtn').addEventListener('click',()=>{
 <!-- ── Firebase: đăng ký · đăng nhập · chặn · duyệt ────────────────── -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, doc, getDoc, getDocFromServer, setDoc, serverTimestamp, collection, getDocs, updateDoc }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
@@ -716,13 +724,16 @@ function setMode(m){
     ? 'アカウントをお持ちでない方は「新規登録」へ。登録後、承認されるまでご利用いただけません。<br>Chưa có tài khoản? Bấm “Đăng ký”. Đăng ký xong cần được duyệt mới vào được.'
     : '登録後、管理者の承認を受けるまではご利用いただけません。<br>Sau khi đăng ký, tài khoản ở trạng thái chờ duyệt cho tới khi được chủ ứng dụng cho phép.';
   g('authPass').setAttribute('autocomplete', m==='login' ? 'current-password' : 'new-password');
-  hideErr();
+  g('forgotBtn').classList.toggle('hidden', m!=='login'); // chỉ hiện khi đăng nhập
+  hideErr(); hideNote();
 }
 g('tabLogin').onclick = () => setMode('login');
 g('tabReg').onclick   = () => setMode('register');
 
-const showErr = msg => { const e=g('authErr'); e.textContent=msg; e.classList.remove('hidden'); };
-const hideErr = ()  => g('authErr').classList.add('hidden');
+const showErr  = msg => { const e=g('authErr'); e.textContent=msg; e.classList.remove('hidden'); g('authNote').classList.add('hidden'); };
+const hideErr  = ()  => g('authErr').classList.add('hidden');
+const showNote = msg => { const n=g('authNote'); n.textContent=msg; n.classList.remove('hidden'); g('authErr').classList.add('hidden'); };
+const hideNote = ()  => g('authNote').classList.add('hidden');
 
 const ERR = {
   'auth/invalid-email':'メールアドレスが正しくありません。· Email không hợp lệ.',
@@ -756,6 +767,19 @@ g('authSubmit').onclick = async () => {
 };
 ['authEmail','authPass'].forEach(id =>
   g(id).addEventListener('keydown', e => { if(e.key==='Enter') g('authSubmit').click(); }));
+
+// ── Quên mật khẩu: gửi email đặt lại ──
+g('forgotBtn').onclick = async () => {
+  const email = g('authEmail').value.trim();
+  hideErr(); hideNote();
+  if(!email){ showErr('先にメールアドレスを入力してください。· Hãy nhập email vào ô trên để nhận liên kết đặt lại.'); return; }
+  g('forgotBtn').disabled = true;
+  try{
+    await sendPasswordResetEmail(auth, email);
+    showNote('再設定メールを送信しました。受信箱（迷惑メールも）をご確認ください。· Đã gửi email đặt lại mật khẩu. Hãy kiểm tra hộp thư (kể cả mục Spam).');
+  }catch(e){ showErr(errMsg(e.code)); }
+  finally{ g('forgotBtn').disabled = false; }
+};
 
 // ── Đăng xuất ──
 function doLogout(){ if(writeTimer){ clearTimeout(writeTimer); flushStats(); } signOut(auth); } // ghi nốt thống kê trước khi thoát
