@@ -493,7 +493,9 @@ function fnv1a(str){                      // PHẢI khớp fnv1a() trong tools/g
   return h.toString(16).padStart(16,'0');
 }
 let audioSet = null;                      // Set<hash> clip có sẵn (null = chưa tải manifest)
-fetch('audio/manifest.json').then(r=>r.ok?r.json():null)
+// no-store: sau mỗi lần thay máu nội dung, manifest có tên cố định nên dễ bị
+// trình duyệt cache bản cũ -> mất giọng neural. Ép luôn lấy bản mới nhất.
+fetch('audio/manifest.json',{cache:'no-store'}).then(r=>r.ok?r.json():null)
   .then(j=>{ if(Array.isArray(j)) audioSet = new Set(j); }).catch(()=>{});
 let curAudio = null;
 function stopAudio(){
