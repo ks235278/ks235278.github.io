@@ -85,6 +85,7 @@
   .qbox.revealed rt{opacity:1;transform:none}
   .qbox .targ rt{color:var(--green)}
   .blank{color:var(--gold);font-weight:600;letter-spacing:.1em}
+  .qbox .targ.filled{color:var(--green);border-bottom-color:var(--green)}
 
   .opts{display:grid;gap:10px}
   .opt{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--card);
@@ -680,7 +681,17 @@ function choose(btn,opt,q){
   if(opt.correct){score++;perCat[q.cat].right++;}
   else{btn.classList.add('wrong');btn.querySelector('.mark').textContent='誤';}
   recordAnswer(q._id,opt.correct);
-  const qb=$('qbox'); qb.innerHTML=q.qa; void qb.offsetWidth; qb.classList.add('revealed');
+  // Lật đáp án: câu điền chỗ trống → GHI đáp án đúng vào ô (q.qa vẫn giữ ô trống để
+  // audio/再生 trước khi trả lời không lộ đáp án). Hỗ trợ ô trống đôi (vd つ…つ).
+  const qb=$('qbox');
+  let revealHtml=q.qa;
+  if(revealHtml.includes('class="blank"')){
+    const parts=correctOpt.t.split(/…|‥|\.{3}/);
+    let k=0;
+    revealHtml=revealHtml.replace(/<span class="blank">[\s\S]*?<\/span>/g,
+      ()=>`<span class="targ filled">${parts.length>1?(parts[k++]??parts[parts.length-1]):correctOpt.t}</span>`);
+  }
+  qb.innerHTML=revealHtml; void qb.offsetWidth; qb.classList.add('revealed');
   $('verdict').className='verdict '+(opt.correct?'ok':'no');
   $('verdict').textContent=opt.correct?'正解 — Chính xác':'不正解 — Chưa đúng';
   $('expVt').textContent=q.vt||'';
