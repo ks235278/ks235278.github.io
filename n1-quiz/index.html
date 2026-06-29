@@ -100,17 +100,30 @@
   .opt.correct .mark{opacity:1;color:var(--green)}
   .opt.wrong .mark{opacity:1;color:var(--red)}
 
+  /* Dịch sát ngay dưới quote đề — cùng cỡ chữ với quote, dạng thẻ song ngữ */
+  .quote-vi{max-height:0;opacity:0;overflow:hidden;transform:translateY(4px);margin:0;
+    transition:max-height .5s ease,opacity .4s ease,transform .5s ease,margin .4s ease}
+  .quote-vi.show{max-height:420px;opacity:1;transform:none;margin:-10px 0 26px}
+  .quote-vi .qv-label{display:block;font-family:var(--jp);font-size:.62rem;letter-spacing:.2em;
+    color:var(--gold-dim);text-transform:uppercase;margin-bottom:9px}
+  .quote-vi .qv-text{display:block;font-family:var(--vn);font-style:italic;
+    font-size:clamp(1.3rem,5.3vw,1.6rem);line-height:1.5;color:var(--cream);
+    border-left:2px solid var(--gold-dim);padding-left:16px}
+
   .exp{margin:0;border-left:2px solid var(--gold-dim);background:linear-gradient(90deg,#26211611,transparent);
     padding:0 16px;border-radius:0 10px 10px 0;max-height:0;overflow:hidden;opacity:0;
     transition:max-height .45s,opacity .35s,padding .35s,margin .3s}
-  .exp.show{max-height:560px;opacity:1;padding:14px 16px;margin:2px 0 20px}
-  .exp .trans{font-family:var(--vn);font-size:1.04rem;color:var(--cream);margin-bottom:10px;padding-bottom:10px;border-bottom:1px dotted var(--line)}
-  .exp .trans-label{display:inline-block;font-family:var(--jp);font-size:.62rem;letter-spacing:.2em;color:var(--gold-dim);text-transform:uppercase;margin-right:9px;vertical-align:1px}
-  .exp .verdict{font-family:var(--jp);font-weight:600;font-size:.96rem;margin-bottom:7px}
+  .exp.show{max-height:560px;opacity:1;padding:14px 18px;margin:2px 0 20px}
+  .exp .verdict{font-family:var(--jp);font-weight:600;font-size:.96rem;margin:0 0 12px;
+    padding-bottom:11px;border-bottom:1px dotted var(--line)}
   .exp .verdict.ok{color:var(--green)}
   .exp .verdict.no{color:var(--red)}
-  .exp .vn{font-family:var(--vn);font-size:1rem;color:var(--cream);margin-bottom:5px}
-  .exp .jp{font-family:var(--jp);font-size:.9rem;color:var(--muted);line-height:1.7}
+  .exp .note{margin-top:13px}
+  .exp .note:first-of-type{margin-top:0}
+  .exp .note-label{display:block;font-family:var(--jp);font-size:.62rem;letter-spacing:.2em;
+    color:var(--gold-dim);text-transform:uppercase;margin-bottom:4px}
+  .exp .vn{font-family:var(--vn);font-size:1.02rem;color:var(--cream);margin:0}
+  .exp .jp{font-family:var(--jp);font-size:.9rem;color:var(--muted);line-height:1.7;margin:0}
   .next{margin-top:20px}
 
   .result{text-align:center;padding-top:10px}
@@ -297,15 +310,24 @@
     <div class="bar"><i id="prog"></i></div>
     <div class="instr" id="instr"></div>
     <div class="qbox" id="qbox"></div>
+    <div class="quote-vi" id="quoteVi">
+      <span class="qv-label">逐語訳 · Dịch sát</span>
+      <span class="qv-text" id="expVt"></span>
+    </div>
     <button class="btn-play hidden" id="playBtn">
       <svg viewBox="0 0 16 16"><path d="M3 2.5l10 5.5-10 5.5z"/></svg>再生 — đọc câu
     </button>
     <div class="tts-warn hidden" id="ttsWarn">Máy chưa cài giọng đọc tiếng Nhật nên không phát âm được. Mở Cài đặt Windows → Thời gian &amp; ngôn ngữ → Ngôn ngữ → thêm 日本語, rồi cài gói Giọng nói (Speech).</div>
     <div class="exp" id="exp">
       <div class="verdict" id="verdict"></div>
-      <div class="trans"><span class="trans-label">逐語訳 · Dịch sát</span><span id="expVt"></span></div>
-      <div class="vn" id="expVn"></div>
-      <div class="jp" id="expJp"></div>
+      <div class="note">
+        <span class="note-label">語釈 · Nghĩa từ</span>
+        <div class="vn" id="expVn"></div>
+      </div>
+      <div class="note">
+        <span class="note-label">語義 · Nghĩa tiếng Nhật</span>
+        <div class="jp" id="expJp"></div>
+      </div>
     </div>
     <div class="opts" id="opts"></div>
     <button class="btn next hidden" id="nextBtn"></button>
@@ -619,6 +641,7 @@ function showQ(){
     o.appendChild(b);
   });
   $('exp').classList.remove('show');
+  $('quoteVi').classList.remove('show');
   $('nextBtn').classList.add('hidden');
   // Kanji hỏi CÁCH ĐỌC từ bôi đen → đọc câu đề sẽ lộ đáp án. Ẩn nút đến khi trả lời xong.
   if(q.cat==='kanji'){
@@ -654,6 +677,7 @@ function choose(btn,opt,q){
   $('verdict').className='verdict '+(opt.correct?'ok':'no');
   $('verdict').textContent=opt.correct?'正解 — Chính xác':'不正解 — Chưa đúng';
   $('expVt').textContent=q.vt||'';
+  $('quoteVi').classList.toggle('show', !!(q.vt && q.vt.trim())); // dịch sát hiện ngay dưới quote
   $('expVn').innerHTML=q.vn;
   $('expJp').textContent=q.jp;
   $('exp').classList.add('show');
