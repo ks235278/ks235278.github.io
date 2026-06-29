@@ -53,6 +53,20 @@ def has_kanji(s: str) -> bool:
 def esc(s: str) -> str:
     return html.escape(s, quote=False)
 
+# ── Chuẩn hoá `vn`: nguồn hay rơi dấu ')' -> bù lại cho cân ngoặc ─────────
+# Mẫu chuẩn: 「từ」(cách đọc): nghĩa.  (câu vốn đúng được GIỮ NGUYÊN)
+def fix_vn(s: str) -> str:
+    if not s:
+        return s
+    # 1) đóng ngoặc cách đọc: 」(kana: -> 」(kana):  (không khớp câu đã có ')')
+    s = re.sub(r"」\(([^():：]+?)\s*[:：]\s*", r"」(\1): ", s, count=1)
+    # 2) thiếu ')' (ngoặc phụ trong nghĩa) -> chèn ngay trước dấu chấm cuối
+    need = s.count("(") - s.count(")")
+    if need > 0:
+        m = re.search(r"[.。]+\s*$", s)
+        s = (s[: m.start()] + ")" * need + s[m.start():]) if m else (s + ")" * need)
+    return s
+
 # ── furigana 1 cụm: tách okurigana đầu/cuối, ruby phần lõi kanji ──────────
 def furi_token(surface: str, reading_hira: str) -> str:
     if not has_kanji(surface):
@@ -163,7 +177,7 @@ def to_data(items: list) -> list:
         if it.get("answer") is not None:
             assert opts[0] == it["answer"], (it["id"], "opts0 != answer")
         rec = {"cat": cat, "q": it["q"], "qa": build_qa(it),
-               "opts": opts, "vt": it["vt"], "vn": it["vn"], "jp": it["jp"]}
+               "opts": opts, "vt": it["vt"], "vn": fix_vn(it["vn"]), "jp": it["jp"]}
         if cat == "kanji":
             rec["r"] = it["r"]
         out.append(rec)
