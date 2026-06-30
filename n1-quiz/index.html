@@ -236,7 +236,8 @@
   .trial-banner{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:900;
     font-family:var(--jp);font-size:.76rem;color:var(--gold);background:var(--card);
     border:1px solid var(--gold-dim);border-radius:999px;padding:7px 16px;white-space:nowrap;
-    box-shadow:0 4px 18px rgba(0,0,0,.35)}
+    box-shadow:0 4px 18px rgba(0,0,0,.35);cursor:pointer}
+  .trial-banner:hover{border-color:var(--gold)}
   #adminPanel{position:fixed;inset:0;background:var(--bg);overflow-y:auto;
     padding:clamp(16px,4vw,40px) clamp(14px,4vw,24px) 64px;z-index:1100;display:flex;justify-content:center}
   #adminPanel.hidden{display:none}
@@ -511,6 +512,7 @@
         <input id="paySender" type="text" autocomplete="name" placeholder="例: NGUYEN VAN A"></label>
       <button class="btn" id="payClaimBtn">振込みました · Tôi đã chuyển khoản</button>
       <p class="auth-note hidden" id="payWait">入金のご連絡を受け取りました。確認後に承認します。<br>Đã nhận thông tin của bạn. Admin sẽ kiểm tra và duyệt — vui lòng chờ rồi bấm “Kiểm tra lại”.</p>
+      <button class="btn ghost hidden" id="payBack" style="margin-top:10px">← 戻って学習 · Quay lại làm bài</button>
       <button class="btn ghost" id="payRecheck" style="margin-top:10px">再確認 · Kiểm tra lại</button>
       <button class="btn ghost" id="payLogout" style="margin-top:10px">ログアウト · Đăng xuất</button>
     </div>
@@ -1027,7 +1029,10 @@ function showPending(type){
 }
 
 // ── Màn thanh toán (chưa duyệt & hết dùng thử) ──
-async function showPayment(uid){
+async function showPayment(uid, canClose=false){
+  // canClose=true: mở tự nguyện trong lúc dùng thử/còn hạn (xem giá, trả sớm) → hiện nút Quay lại, ẩn Kiểm tra lại.
+  g('payBack').classList.toggle('hidden', !canClose);
+  g('payRecheck').classList.toggle('hidden', canClose);
   g('payBank').textContent   = PAY_INFO.bank;
   g('payBranch').textContent = PAY_INFO.branch;
   g('payType').textContent   = PAY_INFO.type;
@@ -1098,6 +1103,19 @@ g('payClaimBtn').onclick = async () => {
   }catch(e){ alert('送信エラー · Lỗi gửi: ' + (e.code||e.message) + '\nCần quyền ghi payments/{uid} trong Firestore Rules.'); }
   finally{ g('payClaimBtn').disabled = false; }
 };
+
+// Mở màn "gói thành viên" tự nguyện (xem giá + chuyển khoản sớm) khi đang dùng thử / còn hạn.
+async function openPaymentInfo(){
+  if(!currentUid) return;
+  gateOpen();
+  await showPayment(currentUid, true);
+}
+g('payBack').onclick = () => {
+  gateClose();
+  ['quiz','result','statsPage','leaderPage','profilePage'].forEach(id => g(id).classList.add('hidden'));
+  g('start').classList.remove('hidden'); window.scrollTo(0,0);
+};
+g('trialBanner').onclick = openPaymentInfo;   // bấm banner để xem phí / trả sớm
 
 // ── Thống kê thành tích theo từng tài khoản (Firestore: stats/{uid}) ──
 let currentUid = null, statsCache = {}, statsDirty = false, currentName = '', amAdmin = false;
@@ -1321,13 +1339,13 @@ async function resolveUser(user){
         if(paidUntilMs != null && serverNow < paidUntilMs){          // gói tháng còn hạn
           paid = true;
           const d = Math.max(1, Math.ceil((paidUntilMs - serverNow)/dayMs));
-          bannerTxt = `有効・残り${d}日 · Gói tháng — còn ${d} ngày`;
+          bannerTxt = `有効・残り${d}日 · Gói tháng còn ${d} ngày — gia hạn ▸`;
         } else {                                                      // chưa trả / hết hạn → xét dùng thử
           const trialLeft = TRIAL_MS - (serverNow - createdMs);
           inTrial = trialLeft > 0;
           if(inTrial){
             const d = Math.max(1, Math.ceil(trialLeft/dayMs));
-            bannerTxt = `体験中・残り${d}日 · Dùng thử — còn ${d} ngày`;
+            bannerTxt = `体験中 残り${d}日 · Thử còn ${d} ngày — sau đó 1,000円/月 ▸`;
           }
         }
       }
