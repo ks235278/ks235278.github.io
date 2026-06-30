@@ -269,6 +269,18 @@
   .gate-sw.on{background:var(--green-bg);border-color:var(--green)}
   .gate-sw.on::after{transform:translateX(24px);background:var(--green)}
   .gate-sw:disabled{opacity:.5;cursor:default}
+  /* ── Modal mời đăng ký ── */
+  #joinModal{position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;
+             background:rgba(10,8,4,.74);backdrop-filter:blur(3px);padding:20px}
+  #joinModal.hidden{display:none}
+  .join-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:18px;
+             padding:28px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .join-icon{font-size:2.6rem;margin-bottom:8px}
+  .join-title{font-family:var(--jp);font-weight:700;font-size:1.2rem;color:var(--cream);margin-bottom:12px}
+  .join-msg{font-family:var(--vn);color:var(--muted);font-size:.92rem;line-height:1.6;margin-bottom:20px}
+  .join-later{display:block;width:100%;margin-top:12px;background:none;border:none;cursor:pointer;
+              font:inherit;font-family:var(--vn);font-style:italic;color:var(--faint);font-size:.86rem}
+  .join-later:hover{color:var(--gold)}
   .ar-summary{font-family:var(--vn);font-size:.9rem;color:var(--cream);margin-bottom:11px;line-height:1.5}
   .ar-summary b{color:var(--gold)}
 
@@ -527,6 +539,17 @@
     </div>
     <p class="auth-sub" id="adminInfo" style="text-align:left;margin:0 0 14px"></p>
     <div class="stats-list" id="adminList"></div>
+  </div>
+</div>
+
+<!-- ── Thông báo mời đăng ký (hiện cho người dùng chế độ MỞ khi admin vừa BẬT cổng) ── -->
+<div id="joinModal" class="hidden">
+  <div class="join-card">
+    <div class="join-icon">🎓</div>
+    <div class="join-title">会員登録のお願い · Mời đăng ký thành viên</div>
+    <p class="join-msg">公開体験は終了しました。続けて学習するには会員登録（Google でログイン）してください。<br>Giai đoạn mở miễn phí đã kết thúc. Để tiếp tục học, hãy đăng ký làm thành viên (đăng nhập bằng Google).</p>
+    <button class="btn" id="joinNowBtn">登録・ログイン · Đăng ký / Đăng nhập</button>
+    <button class="join-later" id="joinLaterBtn">後で · Để sau</button>
   </div>
 </div>
 
@@ -940,7 +963,7 @@ window.N1_statsHTML = (entries) => {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { getFirestore, doc, getDoc, getDocFromServer, setDoc, serverTimestamp, collection, getDocs, updateDoc }
+import { getFirestore, doc, getDoc, getDocFromServer, setDoc, serverTimestamp, collection, getDocs, updateDoc, onSnapshot }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1227,11 +1250,21 @@ const TRIAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 ngày dùng thử kể từ lúc 
 
 // Chế độ mở: ai có link cũng vào thẳng màn hình chính, không đăng nhập.
 // Không có uid → flushStats/leaderboard tự no-op; thành tích chỉ lưu localStorage.
+let gateWatch = null;
 function enterOpenMode(){
   currentUid = null; amAdmin = false;
   gateClose();
   // không hiện nút đăng xuất (chưa đăng nhập) hay nút duyệt cho người thường.
+  // Lắng nghe real-time: admin BẬT cổng → hiện popup mời đăng ký thành viên cho người đang dùng.
+  if(!gateWatch){
+    gateWatch = onSnapshot(doc(db,'config','app'), snap => {
+      const on = snap.exists() && snap.data().gateEnabled === true;
+      g('joinModal').classList.toggle('hidden', !on);
+    }, () => {});
+  }
 }
+g('joinNowBtn').onclick   = () => location.reload();   // tải lại → cổng đã BẬT → màn đăng nhập Google
+g('joinLaterBtn').onclick = () => g('joinModal').classList.add('hidden');
 
 async function resolveUser(user){
   g('logoutBtn').classList.add('hidden');
