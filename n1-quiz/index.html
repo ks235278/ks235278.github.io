@@ -193,9 +193,10 @@
   .auth-field{display:block;margin-bottom:14px}
   .auth-field span{display:block;font-family:var(--jp);font-size:.72rem;letter-spacing:.14em;
     color:var(--gold-dim);margin-bottom:6px;text-transform:uppercase}
-  .auth-field input{width:100%;font:inherit;font-size:1rem;color:var(--cream);background:var(--bg-soft);
+  .auth-field input,.auth-field select{width:100%;font:inherit;font-size:1rem;color:var(--cream);background:var(--bg-soft);
     border:1px solid var(--line);border-radius:10px;padding:13px 14px;transition:border-color .16s}
-  .auth-field input:focus{outline:none;border-color:var(--gold)}
+  .auth-field select{font-family:var(--jp);cursor:pointer;appearance:none;-webkit-appearance:none}
+  .auth-field input:focus,.auth-field select:focus{outline:none;border-color:var(--gold)}
   .auth-err{font-family:var(--vn);color:var(--red);font-size:.9rem;margin-bottom:12px;line-height:1.5}
   .auth-note{font-family:var(--vn);color:var(--green);font-size:.9rem;margin-bottom:12px;line-height:1.55;
     background:var(--green-bg);border:1px solid var(--green);border-radius:10px;padding:11px 13px}
@@ -210,6 +211,18 @@
   .auth-sub{font-family:var(--vn);color:var(--muted);font-size:.9rem;text-align:center;margin:10px 0 20px;line-height:1.6}
   .auth-icon{font-size:2.6rem;text-align:center;margin-bottom:10px}
   .auth-pane > .btn{margin-top:6px}
+  .google-btn{display:flex;align-items:center;justify-content:center;gap:11px;background:#fff;color:#1f1f1f;
+    font-size:.98rem;letter-spacing:.02em}
+  .google-btn .g-logo{flex:0 0 auto}
+  .google-btn span{font-family:var(--jp);font-weight:600}
+  /* ── Màn thanh toán chuyển khoản ── */
+  .pay-box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px 14px;margin:8px 0 12px;text-align:left}
+  .pay-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .pay-row:last-child{border-bottom:none}
+  .pay-row > span{font-family:var(--vn);color:var(--muted);font-size:.8rem;flex:0 0 auto}
+  .pay-row > b{font-family:var(--jp);color:var(--cream);font-size:.98rem;text-align:right;word-break:break-all}
+  .pay-row.total > b{color:var(--gold);font-size:1.3rem;font-weight:700}
+  .pay-note{font-family:var(--vn);color:var(--faint);font-size:.8rem;text-align:left;margin:0 0 14px;line-height:1.55}
 
   /* ── Trang duyệt (admin) ────────────────────────────────────────── */
   .admin-fab{position:fixed;top:14px;right:14px;z-index:900;font:inherit;font-family:var(--jp);font-weight:600;
@@ -232,6 +245,7 @@
     border-radius:11px;padding:13px 15px}
   .admin-row .ar-mail{flex:1;min-width:0;font-family:var(--vn);font-size:.96rem;color:var(--cream);word-break:break-all}
   .admin-row .ar-mail small{display:block;font-family:var(--jp);font-size:.7rem;color:var(--faint);margin-top:3px}
+  .admin-row .ar-paid{color:var(--gold);font-weight:600}
   .admin-row .ar-act{font:inherit;font-family:var(--jp);font-weight:600;font-size:.8rem;border-radius:999px;
     padding:7px 14px;cursor:pointer;border:1px solid;transition:.16s;white-space:nowrap}
   .admin-row .ar-act:disabled{opacity:.5;cursor:default}
@@ -241,6 +255,19 @@
   .admin-item{margin-bottom:8px}
   .ar-detail{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:13px 15px;margin-top:6px}
   .ar-detail.hidden{display:none}
+  /* ── Công tắc bật/tắt cổng (admin) ── */
+  .gate-row{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);
+            border-radius:14px;padding:14px 16px;margin-bottom:16px}
+  .gate-lbl{flex:1;min-width:0}
+  .gate-lbl span{display:block;font-family:var(--jp);font-weight:600;color:var(--cream);font-size:.95rem}
+  .gate-lbl small{display:block;font-family:var(--vn);color:var(--faint);font-size:.74rem;margin-top:4px;line-height:1.45}
+  .gate-sw{flex:none;width:54px;height:30px;border-radius:999px;border:1px solid var(--line);
+           background:#26211644;position:relative;cursor:pointer;transition:background .18s,border-color .18s}
+  .gate-sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+                  background:var(--faint);transition:transform .18s,background .18s}
+  .gate-sw.on{background:var(--green-bg);border-color:var(--green)}
+  .gate-sw.on::after{transform:translateX(24px);background:var(--green)}
+  .gate-sw:disabled{opacity:.5;cursor:default}
   .ar-summary{font-family:var(--vn);font-size:.9rem;color:var(--cream);margin-bottom:11px;line-height:1.5}
   .ar-summary b{color:var(--gold)}
 
@@ -302,6 +329,7 @@
     <button class="btn" id="startBtn">演習を始める<span class="vn">Bắt đầu luyện tập</span></button>
     <button class="btn ghost" id="leaderBtn" style="margin-top:10px">ランキング · Bảng xếp hạng</button>
     <button class="btn ghost" id="statsBtn" style="margin-top:10px">統計 · Xem thống kê từng câu</button>
+    <button class="btn ghost hidden" id="profileBtn" style="margin-top:10px">プロフィール · Hồ sơ của tôi</button>
   </section>
 
   <section id="quiz" class="hidden">
@@ -376,6 +404,37 @@
     <div class="stats-list" id="leaderList"></div>
   </section>
 
+  <section id="profilePage" class="hidden">
+    <div class="stats-head">
+      <div class="stats-title">プロフィール · Hồ sơ</div>
+      <button class="btn-play" id="profileHomeBtn">← 戻る · Quay lại</button>
+    </div>
+    <p class="name-hint" style="margin-bottom:16px">本名は管理者のみが確認でき、ランキングには出ません。承認を早めるためご記入ください。<br>Tên thật chỉ admin thấy, không hiện trên bảng xếp hạng. Điền giúp admin duyệt nhanh.</p>
+    <label class="auth-field"><span>本名 · Tên thật</span>
+      <input id="pfName" type="text" maxlength="60" autocomplete="name" placeholder="VD: Trịnh Mạnh Quang"></label>
+    <label class="auth-field"><span>性別 · Giới tính</span>
+      <select id="pfGender">
+        <option value="">— 選択 · Chọn —</option>
+        <option value="男性">男性 · Nam</option>
+        <option value="女性">女性 · Nữ</option>
+        <option value="その他">その他 · Khác</option>
+      </select></label>
+    <label class="auth-field"><span>生まれ年 · Năm sinh</span>
+      <select id="pfBirth"><option value="">— 選択 · Chọn —</option></select></label>
+    <label class="auth-field"><span>現在の状況 · Hiện tại</span>
+      <select id="pfOcc">
+        <option value="">— 選択 · Chọn —</option>
+        <option value="学生">学生 · Đang học</option>
+        <option value="社会人">社会人 · Đi làm</option>
+        <option value="その他">その他 · Khác</option>
+      </select></label>
+    <label class="auth-field"><span>母語 · Tiếng mẹ đẻ</span>
+      <input id="pfLang" type="text" maxlength="30" placeholder="VD: Tiếng Việt"></label>
+    <p class="auth-err hidden" id="pfErr"></p>
+    <p class="auth-note hidden" id="pfNote"></p>
+    <button class="btn" id="pfSaveBtn">保存 · Lưu hồ sơ</button>
+  </section>
+
   <div class="footer">頑張って · CỐ LÊN</div>
 </div>
 
@@ -393,19 +452,18 @@
     </div>
 
     <div id="authForms" class="auth-pane hidden">
-      <div class="auth-tabs">
-        <button class="auth-tab on" id="tabLogin">ログイン · Đăng nhập</button>
-        <button class="auth-tab" id="tabReg">新規登録 · Đăng ký</button>
-      </div>
-      <label class="auth-field"><span>メール · Email</span>
-        <input id="authEmail" type="email" autocomplete="email" placeholder="email@example.com"></label>
-      <label class="auth-field"><span>パスワード · Mật khẩu</span>
-        <input id="authPass" type="password" autocomplete="current-password" placeholder="••••••••"></label>
       <p class="auth-err hidden" id="authErr"></p>
       <p class="auth-note hidden" id="authNote"></p>
-      <button class="btn" id="authSubmit">ログイン · Đăng nhập</button>
-      <button class="auth-link hidden" id="forgotBtn">パスワードをお忘れですか · Quên mật khẩu?</button>
-      <p class="auth-hint" id="authHint"></p>
+      <button class="btn google-btn" id="googleBtn">
+        <svg class="g-logo" viewBox="0 0 18 18" width="20" height="20" aria-hidden="true">
+          <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.02-3.7H.96v2.33A9 9 0 0 0 9 18z"/>
+          <path fill="#FBBC05" d="M3.98 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.02-2.33z"/>
+          <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.95l3.02 2.33C4.68 5.16 6.66 3.58 9 3.58z"/>
+        </svg>
+        <span>Google でログイン · Đăng nhập bằng Google</span>
+      </button>
+      <p class="auth-hint" id="authHint">登録は不要 — Google でログインするだけ。初回ログイン後、管理者の承認をお待ちください。<br>Không cần đăng ký riêng — chỉ cần đăng nhập bằng Google. Lần đầu đăng nhập xong, vui lòng chờ được duyệt.</p>
     </div>
 
     <div id="authPending" class="auth-pane hidden">
@@ -414,6 +472,27 @@
       <p class="auth-sub" id="pendingSub">体験期間が終了しました。引き続き利用するには管理者の承認が必要です。承認後「再確認」を押してください。<br>Đã hết thời gian dùng thử. Cần được chủ ứng dụng duyệt để tiếp tục. Sau khi được duyệt, bấm “Kiểm tra lại”.</p>
       <button class="btn" id="recheckBtn">再確認 · Kiểm tra lại</button>
       <button class="btn ghost" id="pendingLogout" style="margin-top:10px">ログアウト · Đăng xuất</button>
+    </div>
+
+    <div id="authPay" class="auth-pane hidden">
+      <div class="auth-icon">🔓</div>
+      <p class="auth-msg">利用には お振込みが必要です · Cần thanh toán để tiếp tục</p>
+      <p class="auth-sub">下記口座へお振込みください。確認後、管理者が承認します。<br>Vui lòng chuyển khoản tới tài khoản dưới đây. Sau khi admin xác nhận đã nhận tiền sẽ duyệt cho bạn.</p>
+      <div class="pay-box">
+        <div class="pay-row"><span>銀行 · Ngân hàng</span><b id="payBank"></b></div>
+        <div class="pay-row"><span>支店 · Chi nhánh</span><b id="payBranch"></b></div>
+        <div class="pay-row"><span>種別 · Loại TK</span><b id="payType"></b></div>
+        <div class="pay-row"><span>口座番号 · Số TK</span><b id="payNumber"></b></div>
+        <div class="pay-row"><span>口座名義 · Chủ TK</span><b id="payHolder"></b></div>
+        <div class="pay-row total"><span>金額 · Số tiền</span><b id="payAmount"></b></div>
+      </div>
+      <p class="pay-note" id="payNote"></p>
+      <label class="auth-field"><span>振込人名義 · Tên bạn ghi khi chuyển</span>
+        <input id="paySender" type="text" autocomplete="name" placeholder="例: NGUYEN VAN A"></label>
+      <button class="btn" id="payClaimBtn">振込みました · Tôi đã chuyển khoản</button>
+      <p class="auth-note hidden" id="payWait">入金のご連絡を受け取りました。確認後に承認します。<br>Đã nhận thông tin của bạn. Admin sẽ kiểm tra và duyệt — vui lòng chờ rồi bấm “Kiểm tra lại”.</p>
+      <button class="btn ghost" id="payRecheck" style="margin-top:10px">再確認 · Kiểm tra lại</button>
+      <button class="btn ghost" id="payLogout" style="margin-top:10px">ログアウト · Đăng xuất</button>
     </div>
   </div>
 </div>
@@ -431,6 +510,13 @@
     <div class="stats-head">
       <div class="stats-title">承認管理 · Duyệt người dùng</div>
       <button class="btn-play" id="adminClose">← 戻る · Quay lại</button>
+    </div>
+    <div class="gate-row">
+      <div class="gate-lbl">
+        <span id="gateState">…</span>
+        <small id="gateHint"></small>
+      </div>
+      <button class="gate-sw" id="gateToggle" role="switch" aria-checked="true" title="認証モード · Yêu cầu đăng nhập"></button>
     </div>
     <p class="auth-sub" id="adminInfo" style="text-align:left;margin:0 0 14px"></p>
     <div class="stats-list" id="adminList"></div>
@@ -845,7 +931,7 @@ window.N1_statsHTML = (entries) => {
 <!-- ── Firebase: đăng ký · đăng nhập · chặn · duyệt ────────────────── -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, doc, getDoc, getDocFromServer, setDoc, serverTimestamp, collection, getDocs, updateDoc }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
@@ -867,12 +953,35 @@ const auth = getAuth(app);
 auth.useDeviceLanguage(); // email (đặt lại mật khẩu…) khớp ngôn ngữ trình duyệt người dùng; đổi 'vi'/'ja' nếu muốn cố định
 const db   = getFirestore(app);
 
+// ── Cấu hình toàn cục (Firestore: config/app) ───────────────────────
+// gateEnabled = true  → cổng BẬT: đăng nhập → duyệt/thanh toán mới vào (mặc định, an toàn).
+// gateEnabled = false → cổng TẮT: ai có link cũng vào thẳng làm bài, không cần đăng nhập.
+let appConfig = { gateEnabled: true };
+
+// ── Thông tin chuyển khoản (SỬA Ở ĐÂY) ──────────────────────────────
+const PAY_INFO = {
+  bank:   '三井住友銀行 (SMBC)',
+  branch: 'オリーブGRAY支店',
+  type:   '普通',
+  number: '3459428',
+  holder: 'チン　マン　クアン',
+  amount: '1,000円 / 月',
+  note:   '月額プランです。振込手数料はお客様のご負担です。確認を早めるため、振込時の名義を上にご入力ください。· Gói theo THÁNG. Phí chuyển khoản do bạn chịu. Nhập đúng tên đã dùng khi chuyển để admin đối chiếu nhanh. Mỗi lần admin xác nhận sẽ gia hạn thêm 1 tháng.'
+};
+
+async function readAppConfig(){
+  try{
+    const snap = await getDoc(doc(db,'config','app'));
+    if(snap.exists() && snap.data().gateEnabled === false) appConfig.gateEnabled = false;
+  }catch(e){ /* đọc lỗi (mạng/rule) → giữ mặc định BẬT cho an toàn */ }
+}
+
 const g = id => document.getElementById(id);
 const body = document.body;
 const gateOpen  = () => body.classList.add('gated');
 const gateClose = () => body.classList.remove('gated');
 const showPane  = which =>
-  ['authLoading','authForms','authPending'].forEach(id => g(id).classList.toggle('hidden', id!==which));
+  ['authLoading','authForms','authPending','authPay'].forEach(id => g(id).classList.toggle('hidden', id!==which));
 function showPending(type){
   if(type==='network'){
     g('pendingIcon').textContent = '📶';
@@ -886,72 +995,54 @@ function showPending(type){
   showPane('authPending');
 }
 
-// ── Tabs đăng nhập / đăng ký ──
-let mode = 'login';
-function setMode(m){
-  mode = m;
-  g('tabLogin').classList.toggle('on', m==='login');
-  g('tabReg').classList.toggle('on', m==='register');
-  g('authSubmit').textContent = m==='login' ? 'ログイン · Đăng nhập' : '新規登録 · Đăng ký';
-  g('authHint').innerHTML = m==='login'
-    ? 'アカウントをお持ちでない方は「新規登録」へ。登録後、承認されるまでご利用いただけません。<br>Chưa có tài khoản? Bấm “Đăng ký”. Đăng ký xong cần được duyệt mới vào được.'
-    : '登録後、管理者の承認を受けるまではご利用いただけません。<br>Sau khi đăng ký, tài khoản ở trạng thái chờ duyệt cho tới khi được chủ ứng dụng cho phép.';
-  g('authPass').setAttribute('autocomplete', m==='login' ? 'current-password' : 'new-password');
-  g('forgotBtn').classList.toggle('hidden', m!=='login'); // chỉ hiện khi đăng nhập
-  hideErr(); hideNote();
+// ── Màn thanh toán (chưa duyệt & hết dùng thử) ──
+async function showPayment(uid){
+  g('payBank').textContent   = PAY_INFO.bank;
+  g('payBranch').textContent = PAY_INFO.branch;
+  g('payType').textContent   = PAY_INFO.type;
+  g('payNumber').textContent = PAY_INFO.number;
+  g('payHolder').textContent = PAY_INFO.holder;
+  g('payAmount').textContent = PAY_INFO.amount;
+  g('payNote').textContent   = PAY_INFO.note;
+  let claimed = false, senderName = '';
+  try{
+    const s = await getDoc(doc(db,'payments',uid));
+    if(s.exists()){ claimed = s.data().claimed === true; senderName = s.data().senderName || ''; }
+  }catch(e){ /* chưa đọc được → coi như chưa báo */ }
+  g('paySender').value = senderName;
+  g('payWait').classList.toggle('hidden', !claimed);
+  showPane('authPay');
 }
-g('tabLogin').onclick = () => setMode('login');
-g('tabReg').onclick   = () => setMode('register');
 
-const showErr  = msg => { const e=g('authErr'); e.textContent=msg; e.classList.remove('hidden'); g('authNote').classList.add('hidden'); };
-const hideErr  = ()  => g('authErr').classList.add('hidden');
-const showNote = msg => { const n=g('authNote'); n.innerHTML=msg; n.classList.remove('hidden'); g('authErr').classList.add('hidden'); };
-const hideNote = ()  => g('authNote').classList.add('hidden');
+// ── Hiển thị lỗi đăng nhập ──
+const showErr = msg => { const e=g('authErr'); e.textContent=msg; e.classList.remove('hidden'); };
+const hideErr = ()  => g('authErr').classList.add('hidden');
 
 const ERR = {
-  'auth/invalid-email':'メールアドレスが正しくありません。· Email không hợp lệ.',
-  'auth/missing-password':'パスワードを入力してください。· Hãy nhập mật khẩu.',
-  'auth/weak-password':'パスワードが短すぎます（6文字以上）。· Mật khẩu quá ngắn (cần ít nhất 6 ký tự).',
-  'auth/email-already-in-use':'このメールは登録済みです。「ログイン」を選んでください。· Email này đã được đăng ký. Hãy chọn “Đăng nhập”.',
-  'auth/invalid-credential':'メールまたはパスワードが違います。· Email hoặc mật khẩu không đúng.',
-  'auth/wrong-password':'パスワードが違います。· Mật khẩu không đúng.',
-  'auth/user-not-found':'アカウントが見つかりません。· Không tìm thấy tài khoản này.',
-  'auth/too-many-requests':'試行回数が多すぎます。しばらくしてからお試しください。· Thử quá nhiều lần. Hãy đợi một lát rồi thử lại.',
-  'auth/network-request-failed':'ネットワークエラー。接続を確認してください。· Lỗi mạng. Kiểm tra kết nối internet.'
+  'auth/popup-closed-by-user':'ログインがキャンセルされました。· Bạn đã đóng cửa sổ đăng nhập.',
+  'auth/popup-blocked':'ポップアップがブロックされました。別の方法で再試行します…· Cửa sổ bị chặn — đang thử cách khác…',
+  'auth/network-request-failed':'ネットワークエラー。接続を確認してください。· Lỗi mạng. Kiểm tra kết nối internet.',
+  'auth/unauthorized-domain':'このドメインは未許可です。Firebase の「承認済みドメイン」に追加してください。· Tên miền chưa được phép — thêm vào Authorized domains trong Firebase.',
+  'auth/operation-not-allowed':'Google ログインが無効です。Firebase で有効化してください。· Chưa bật đăng nhập Google trong Firebase.'
 };
 const errMsg = code => ERR[code] || ('エラーが発生しました · Có lỗi xảy ra: ' + code);
 
-// ── Gửi form ──
-g('authSubmit').onclick = async () => {
-  const email = g('authEmail').value.trim();
-  const pass  = g('authPass').value;
-  if(!email || !pass){ showErr('メールとパスワードを入力してください。· Hãy nhập đủ email và mật khẩu.'); return; }
-  g('authSubmit').disabled = true; hideErr();
-  try{
-    if(mode==='register'){
-      const cred = await createUserWithEmailAndPassword(auth, email, pass);
-      await setDoc(doc(db,'users',cred.user.uid), { email, approved:false, createdAt:serverTimestamp() });
-      // onAuthStateChanged sẽ hiện màn chờ duyệt
-    } else {
-      await signInWithEmailAndPassword(auth, email, pass);
-    }
-  }catch(e){ showErr(errMsg(e.code)); }
-  finally{ g('authSubmit').disabled = false; }
-};
-['authEmail','authPass'].forEach(id =>
-  g(id).addEventListener('keydown', e => { if(e.key==='Enter') g('authSubmit').click(); }));
+// ── Đăng nhập bằng Google ──
+const provider = new GoogleAuthProvider();
+provider.setCustomParameters({ prompt: 'select_account' }); // luôn cho chọn tài khoản
+getRedirectResult(auth).catch(()=>{});                       // nuốt kết quả khi quay lại từ redirect
 
-// ── Quên mật khẩu: gửi email đặt lại ──
-g('forgotBtn').onclick = async () => {
-  const email = g('authEmail').value.trim();
-  hideErr(); hideNote();
-  if(!email){ showErr('先にメールアドレスを入力してください。· Hãy nhập email vào ô trên để nhận liên kết đặt lại.'); return; }
-  g('forgotBtn').disabled = true;
+g('googleBtn').onclick = async () => {
+  hideErr(); g('googleBtn').disabled = true;
   try{
-    await sendPasswordResetEmail(auth, email);
-    showNote('再設定メールを送信しました。届かない場合は<b>迷惑メール / スパム</b>フォルダもご確認ください（送信元: noreply@n1-quiz.firebaseapp.com）。<br>Đã gửi email đặt lại mật khẩu. Nếu không thấy trong Hộp thư đến, hãy kiểm tra thư mục <b>Spam / Thư rác</b> (người gửi: noreply@n1-quiz.firebaseapp.com).');
-  }catch(e){ showErr(errMsg(e.code)); }
-  finally{ g('forgotBtn').disabled = false; }
+    await signInWithPopup(auth, provider);   // onAuthStateChanged → resolveUser xử lý tiếp
+  }catch(e){
+    if(e.code === 'auth/popup-blocked'){
+      try{ await signInWithRedirect(auth, provider); return; }catch(e2){ showErr(errMsg(e2.code)); }
+    }else if(e.code !== 'auth/cancelled-popup-request' && e.code !== 'auth/popup-closed-by-user'){
+      showErr(errMsg(e.code));
+    }
+  }finally{ g('googleBtn').disabled = false; }
 };
 
 // ── Đăng xuất ──
@@ -959,6 +1050,23 @@ function doLogout(){ flushStats(); signOut(auth); } // ghi nốt thống kê tr�
 g('pendingLogout').onclick = () => signOut(auth);
 g('logoutBtn').onclick     = doLogout;
 g('recheckBtn').onclick    = () => location.reload();
+
+// ── Báo đã chuyển khoản ──
+g('payLogout').onclick  = () => signOut(auth);
+g('payRecheck').onclick = () => location.reload();
+g('payClaimBtn').onclick = async () => {
+  const u = auth.currentUser; if(!u) return;
+  const senderName = g('paySender').value.trim();
+  if(!senderName){ alert('振込人名義を入力してください · Hãy nhập tên bạn đã dùng khi chuyển khoản.'); return; }
+  g('payClaimBtn').disabled = true;
+  try{
+    await setDoc(doc(db,'payments',u.uid),
+      { senderName, claimed:true, email:u.email||'', displayName:u.displayName||'', claimedAt:serverTimestamp() },
+      { merge:true });
+    g('payWait').classList.remove('hidden');
+  }catch(e){ alert('送信エラー · Lỗi gửi: ' + (e.code||e.message) + '\nCần quyền ghi payments/{uid} trong Firestore Rules.'); }
+  finally{ g('payClaimBtn').disabled = false; }
+};
 
 // ── Thống kê thành tích theo từng tài khoản (Firestore: stats/{uid}) ──
 let currentUid = null, statsCache = {}, statsDirty = false, currentName = '', amAdmin = false;
@@ -1056,33 +1164,106 @@ g('leaderHomeBtn').onclick = () => { g('leaderPage').classList.add('hidden'); g(
 g('nameSaveBtn').onclick = setName;
 g('nameInput').addEventListener('keydown', e => { if(e.key==='Enter') setName(); });
 
+// ── Hồ sơ cá nhân (Firestore: profiles/{uid}) — tên thật chỉ admin thấy ──
+function populateBirthYears(){
+  const sel = g('pfBirth'); if(sel.options.length > 1) return;     // chỉ dựng 1 lần
+  const now = new Date().getFullYear();
+  for(let y = now-5; y >= 1950; y--){
+    const o = document.createElement('option'); o.value = String(y); o.textContent = y + '年 · ' + y; sel.appendChild(o);
+  }
+}
+async function openProfile(){
+  if(!currentUid) return;
+  populateBirthYears();
+  ['start','quiz','result','statsPage','leaderPage'].forEach(id => g(id).classList.add('hidden'));
+  g('profilePage').classList.remove('hidden'); window.scrollTo(0,0);
+  g('pfErr').classList.add('hidden'); g('pfNote').classList.add('hidden');
+  try{
+    const s = await getDoc(doc(db,'profiles',currentUid));
+    const d = s.exists() ? s.data() : {};
+    g('pfName').value   = d.realName   || '';
+    g('pfGender').value = d.gender     || '';
+    g('pfBirth').value  = d.birthYear  ? String(d.birthYear) : '';
+    g('pfOcc').value    = d.occupation || '';
+    g('pfLang').value   = d.language   || '';
+  }catch(e){ /* chưa đọc được → để trống */ }
+}
+async function saveProfile(){
+  if(!currentUid) return;
+  const u = auth.currentUser;
+  const data = {
+    realName:   g('pfName').value.trim().slice(0,60),
+    gender:     g('pfGender').value,
+    birthYear:  g('pfBirth').value ? +g('pfBirth').value : null,
+    occupation: g('pfOcc').value,
+    language:   g('pfLang').value.trim().slice(0,30),
+    email:      (u && u.email) || '', displayName: (u && u.displayName) || '',
+    updatedAt:  serverTimestamp()
+  };
+  g('pfSaveBtn').disabled = true;
+  try{
+    await setDoc(doc(db,'profiles',currentUid), data, { merge:true });
+    const n = g('pfNote'); n.textContent = '保存しました · Đã lưu hồ sơ.'; n.classList.remove('hidden'); g('pfErr').classList.add('hidden');
+  }catch(e){
+    const er = g('pfErr'); er.textContent = '保存エラー · Lỗi lưu: ' + (e.code||e.message) + ' (cần rule profiles/{uid}).';
+    er.classList.remove('hidden');
+  }finally{ g('pfSaveBtn').disabled = false; }
+}
+g('profileBtn').onclick = openProfile;
+g('profileHomeBtn').onclick = () => { g('profilePage').classList.add('hidden'); g('start').classList.remove('hidden'); window.scrollTo(0,0); };
+g('pfSaveBtn').onclick = saveProfile;
+
 // ── Trạng thái đăng nhập ──
 const TRIAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 ngày dùng thử kể từ lúc đăng ký
+
+// Chế độ mở: ai có link cũng vào thẳng màn hình chính, không đăng nhập.
+// Không có uid → flushStats/leaderboard tự no-op; thành tích chỉ lưu localStorage.
+function enterOpenMode(){
+  currentUid = null; amAdmin = false;
+  gateClose();
+  // không hiện nút đăng xuất (chưa đăng nhập) hay nút duyệt cho người thường.
+}
+
 async function resolveUser(user){
   g('logoutBtn').classList.add('hidden');
   g('adminBtn').classList.add('hidden');
   g('trialBanner').classList.add('hidden');
+  g('profileBtn').classList.add('hidden');
+  const isAdmin = !!user && (user.email||'').toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+  // ── Cổng TẮT (chế độ công khai) ── ai cũng vào thẳng; admin vẫn rơi xuống dưới để giữ full quyền + thấy công tắc.
+  if(appConfig.gateEnabled === false && !isAdmin){
+    const wantAuth = /admin|login/i.test(location.hash); // cửa kín: admin thêm #admin vào link để đăng nhập
+    if(!user && wantAuth){ gateOpen(); showPane('authForms'); return; }
+    enterOpenMode(); return;
+  }
+
   if(!user){
     currentUid = null;
     try{ localStorage.removeItem('n1_stats'); }catch(e){} // xóa cache để người sau không thấy thống kê người trước
-    gateOpen(); showPane('authForms'); setMode('login'); return;
+    gateOpen(); showPane('authForms'); return;
   }
-  const isAdmin = (user.email||'').toLowerCase() === ADMIN_EMAIL.toLowerCase();
-  let approved = false, createdMs = null, docReadOk = false;
+  let approved = false, createdMs = null, paidUntilMs = null, docReadOk = false;
   try{
-    const snap = await getDocFromServer(doc(db,'users',user.uid)); // đọc từ server để createdAt chuẩn
+    const snap = await getDocFromServer(doc(db,'users',user.uid)); // đọc từ server để mốc thời gian chuẩn
     docReadOk = true;
     if(snap.exists()){
-      approved = snap.data().approved === true;
+      approved = snap.data().approved === true;     // tài khoản cũ được duyệt vĩnh viễn (tương thích ngược)
       const c = snap.data().createdAt;
       if(c && c.toMillis) createdMs = c.toMillis();
+      const p = snap.data().paidUntil;              // hạn gói tháng
+      if(p && p.toMillis) paidUntilMs = p.toMillis();
     } else {
-      await setDoc(doc(db,'users',user.uid), { email:user.email, approved:false, createdAt:serverTimestamp() });
+      // Lần đầu đăng nhập Google → tạo hồ sơ, lưu luôn tên tài khoản Google (để admin đối chiếu nhanh).
+      await setDoc(doc(db,'users',user.uid), {
+        email:user.email, displayName:user.displayName||'', photoURL:user.photoURL||'',
+        approved:false, createdAt:serverTimestamp()
+      });
     }
   }catch(e){ /* không đọc được hồ sơ từ server → fail-closed bên dưới */ }
 
-  // Người chưa được duyệt: phải xác minh được GIỜ SERVER mới cho vào (chống chỉnh đồng hồ & mở offline từ cache)
-  let inTrial = false, days = 0, blocked = null;
+  // Trừ admin & tài khoản vĩnh viễn: phải xác minh GIỜ SERVER để xét gói tháng + dùng thử (chống chỉnh đồng hồ).
+  let inTrial = false, paid = false, bannerTxt = '', blocked = null;
   if(!isAdmin && !approved){
     if(!docReadOk){
       blocked = 'network';
@@ -1092,34 +1273,79 @@ async function resolveUser(user){
       if(serverNow == null){
         blocked = 'network'; // không lấy được giờ server → chặn, KHÔNG lùi về giờ máy
       } else {
-        if(createdMs == null) createdMs = serverNow; // hồ sơ vừa tạo (mới đăng ký, không xoá/sửa được do rules)
-        const trialLeft = TRIAL_MS - (serverNow - createdMs);
-        inTrial = trialLeft > 0;
-        days = Math.max(1, Math.ceil(trialLeft / (24*60*60*1000)));
+        if(createdMs == null) createdMs = serverNow;
+        const dayMs = 24*60*60*1000;
+        if(paidUntilMs != null && serverNow < paidUntilMs){          // gói tháng còn hạn
+          paid = true;
+          const d = Math.max(1, Math.ceil((paidUntilMs - serverNow)/dayMs));
+          bannerTxt = `有効・残り${d}日 · Gói tháng — còn ${d} ngày`;
+        } else {                                                      // chưa trả / hết hạn → xét dùng thử
+          const trialLeft = TRIAL_MS - (serverNow - createdMs);
+          inTrial = trialLeft > 0;
+          if(inTrial){
+            const d = Math.max(1, Math.ceil(trialLeft/dayMs));
+            bannerTxt = `体験中・残り${d}日 · Dùng thử — còn ${d} ngày`;
+          }
+        }
       }
     }
   }
 
-  if(isAdmin || approved || inTrial){
+  if(isAdmin || approved || paid || inTrial){
     currentUid = user.uid; amAdmin = isAdmin;   // admin không xuất hiện trên bảng xếp hạng công khai
     await loadUserStats(user.uid);   // tải thành tích của chính người này TRƯỚC khi mở app
     gateClose();
     g('logoutBtn').classList.remove('hidden');
+    g('profileBtn').classList.remove('hidden');
     if(isAdmin){ g('adminBtn').classList.remove('hidden'); setupAdmin(); }
-    if(inTrial){
-      g('trialBanner').textContent = `体験中・残り${days}日 · Dùng thử — còn ${days} ngày`;
+    if(bannerTxt){
+      g('trialBanner').textContent = bannerTxt;
       g('trialBanner').classList.remove('hidden');
     }
   } else {
-    gateOpen(); showPending(blocked === 'network' ? 'network' : 'trial');
+    gateOpen();
+    if(blocked === 'network') showPending('network');
+    else await showPayment(user.uid);   // hết dùng thử / hết hạn → yêu cầu chuyển khoản
   }
 }
-onAuthStateChanged(auth, resolveUser);
+// Đọc cấu hình cổng TRƯỚC khi quyết định luồng đăng nhập, rồi mới lắng nghe trạng thái auth.
+(async () => { await readAppConfig(); onAuthStateChanged(auth, resolveUser); })();
 
 // ── Trang duyệt (admin) ──
 function setupAdmin(){
   g('adminBtn').onclick  = async () => { g('adminPanel').classList.remove('hidden'); await renderAdmin(); };
   g('adminClose').onclick = () => g('adminPanel').classList.add('hidden');
+  setupGateToggle();
+}
+
+// ── Công tắc bật/tắt cổng (chỉ admin) ──
+function renderGateToggle(){
+  const on = appConfig.gateEnabled !== false;   // true = cần đăng nhập (bình thường)
+  const sw = g('gateToggle');
+  sw.classList.toggle('on', on);
+  sw.setAttribute('aria-checked', String(on));
+  g('gateState').textContent = on
+    ? '🔒 認証モード · Cổng ĐANG BẬT'
+    : '🔓 公開モード · Cổng ĐANG TẮT';
+  g('gateHint').textContent = on
+    ? 'Phải đăng nhập → được duyệt/thanh toán mới vào được (bình thường).'
+    : 'Ai có link cũng vào thẳng làm bài, không cần đăng nhập. (Admin đăng nhập: thêm #admin vào cuối link)';
+}
+function setupGateToggle(){
+  renderGateToggle();
+  g('gateToggle').onclick = async () => {
+    const cur  = appConfig.gateEnabled !== false;
+    const next = !cur;
+    if(!next && !confirm('TẮT cổng?\nMọi người có link sẽ vào thẳng làm bài, KHÔNG cần đăng nhập / thanh toán.\n認証をオフにしますか？')) return;
+    g('gateToggle').disabled = true;
+    try{
+      await setDoc(doc(db,'config','app'), { gateEnabled: next, updatedAt: serverTimestamp() }, { merge:true });
+      appConfig.gateEnabled = next;
+      renderGateToggle();
+    }catch(e){
+      alert('Lỗi lưu cấu hình: ' + (e.code||e.message) + '\nCần quyền ghi config/app trong Firestore Rules.');
+    }finally{ g('gateToggle').disabled = false; }
+  };
 }
 async function renderAdmin(){
   const list = g('adminList');
@@ -1132,31 +1358,57 @@ async function renderAdmin(){
     let rows = [];
     snap.forEach(d => rows.push({ id:d.id, ...d.data() }));
     rows = rows.filter(r => (r.email||'').toLowerCase() !== ADMIN_EMAIL.toLowerCase()); // ẩn chính admin
-    rows.forEach(r => {                          // thời gian dùng thử còn lại của mỗi người
-      const c = r.createdAt;
-      const createdMs = (c && c.toMillis) ? c.toMillis() : null;
-      r._left = r.approved ? Infinity : (createdMs==null ? 0 : TRIAL_MS - (serverNow - createdMs));
+    // Thông báo đã chuyển khoản (payments/{uid})
+    let payMap = {};
+    try{ const ps = await getDocs(collection(db,'payments')); ps.forEach(d => payMap[d.id] = d.data()||{}); }catch(e){}
+    // Hồ sơ (profiles/{uid}) — tên thật + nhân khẩu (chỉ admin đọc)
+    let profMap = {};
+    try{ const pf = await getDocs(collection(db,'profiles')); pf.forEach(d => profMap[d.id] = d.data()||{}); }catch(e){}
+    rows.forEach(r => {                          // hạn gói tháng / dùng thử / cờ đã báo CK
+      const c = r.createdAt, createdMs = (c && c.toMillis) ? c.toMillis() : null;
+      const p = r.paidUntil, paidMs = (p && p.toMillis) ? p.toMillis() : null;
+      r._paidMs     = paidMs;
+      r._paidActive = paidMs != null && serverNow < paidMs;         // gói tháng còn hạn
+      r._trialLeft  = createdMs==null ? 0 : TRIAL_MS - (serverNow - createdMs);
+      r._inTrial    = !r.approved && !r._paidActive && r._trialLeft > 0;
+      r._active     = r.approved || r._paidActive || r._inTrial;    // đang có quyền vào
+      const pc = payMap[r.id];
+      r._pay = (pc && pc.claimed) ? pc : null;
     });
-    // chưa duyệt lên đầu; trong nhóm chưa duyệt, ai sắp/đã hết hạn lên trước (cần xử lý gấp)
-    rows.sort((a,b) => (a.approved?1:0)-(b.approved?1:0) || a._left - b._left);
-    const pending = rows.filter(r => !r.approved).length;
-    g('adminInfo').textContent = `合計${rows.length}人・承認待ち${pending}人 · Tổng ${rows.length} người, ${pending} đang chờ duyệt.`;
+    // Ưu tiên: đã báo CK & chưa có hạn → gấp nhất; rồi hết hạn/chưa trả; rồi dùng thử; cuối là đang có gói/vĩnh viễn.
+    const rank = r => (r._pay && !r._paidActive) ? 0 : (!r._active ? 1 : (r._inTrial ? 2 : 3));
+    rows.sort((a,b) => rank(a)-rank(b) || (a._paidMs||0)-(b._paidMs||0));
+    const waiting = rows.filter(r => r._pay && !r._paidActive).length;
+    const active  = rows.filter(r => r._active).length;
+    g('adminInfo').textContent = `合計${rows.length}人・有効${active}人・入金確認待ち${waiting}人 · Tổng ${rows.length}, đang hoạt động ${active}, chờ xác nhận CK ${waiting}.`;
     if(!rows.length){ list.innerHTML = '<div class="stats-empty">まだ登録者がいません。· Chưa có ai đăng ký.</div>'; return; }
     list.innerHTML = '';
     rows.forEach(r => {
       let status;
-      if(r.approved) status = '✓ 承認済み · đã duyệt';
-      else if(r._left > 0){
-        const txt = r._left >= dayMs
-          ? `còn ${Math.ceil(r._left/dayMs)} ngày`
-          : `còn ${Math.max(1, Math.ceil(r._left/(60*60*1000)))} giờ`;
-        status = `⏳ 体験中 · dùng thử (${txt})`;
+      if(r.approved) status = '∞ 無期限 · vĩnh viễn';
+      else if(r._paidActive){
+        const d = Math.max(1, Math.ceil((r._paidMs - serverNow)/dayMs));
+        status = `✓ 有効 · còn ${d} ngày`;
+      } else if(r._inTrial){
+        const d = Math.max(1, Math.ceil(r._trialLeft/dayMs));
+        status = `⏳ 体験中 · dùng thử (còn ${d} ngày)`;
       } else {
-        status = '⌛ 体験終了 · hết thử, chờ duyệt';
+        status = r._paidMs ? '⌛ 期限切れ · hết hạn' : '⌛ 未払い · chưa trả';
       }
       const item = document.createElement('div'); item.className = 'admin-item';
       const row = document.createElement('div'); row.className = 'admin-row';
-      row.innerHTML = `<div class="ar-mail">${r.email||'(メール不明 · không rõ email)'}<small>${status}</small></div>`;
+      const pf = profMap[r.id] || {};
+      const nm = esc(pf.realName||'') || esc(r.displayName||'') || '(名前なし · chưa có tên)';
+      const demo = [];
+      if(pf.gender)     demo.push(esc(pf.gender));
+      if(pf.birthYear)  demo.push((new Date().getFullYear() - pf.birthYear) + '歳');
+      if(pf.occupation) demo.push(esc(pf.occupation));
+      if(pf.language)   demo.push(esc(pf.language));
+      const profLine = demo.length ? `<br>👤 ${demo.join(' · ')}` : '';
+      const payLine = r._pay
+        ? `<br><span class="ar-paid">💴 振込連絡 · đã báo CK: ${esc(r._pay.senderName||'(名義なし)')}</span>`
+        : '';
+      row.innerHTML = `<div class="ar-mail">${nm}<small>${esc(r.email||'(メール不明 · không rõ email)')} · ${status}${profLine}${payLine}</small></div>`;
 
       // Khối chi tiết thành tích — tải stats/{uid} khi bấm lần đầu (1 lượt đọc/người, theo yêu cầu)
       const detail = document.createElement('div'); detail.className = 'ar-detail hidden';
@@ -1179,16 +1431,36 @@ async function renderAdmin(){
         }
       };
 
-      const btn = document.createElement('button');
-      btn.className = 'ar-act ' + (r.approved ? 'revoke' : 'approve');
-      btn.textContent = r.approved ? '取消 · Thu hồi' : '承認 · Duyệt';
-      btn.onclick = async () => {
-        btn.disabled = true;
-        try{ await updateDoc(doc(db,'users',r.id), { approved: !r.approved }); await renderAdmin(); }
-        catch(e){ btn.disabled = false; alert('エラー · Lỗi: ' + (e.code || e.message)); }
+      // Gia hạn +1 tháng: paidUntil = max(giờ server, hạn hiện tại) + 1 tháng; xoá cờ đã-báo-CK.
+      const extBtn = document.createElement('button');
+      extBtn.className = 'ar-act approve';
+      extBtn.textContent = '＋1ヶ月 · Gia hạn';
+      extBtn.onclick = async () => {
+        extBtn.disabled = true;
+        try{
+          const base = (r._paidMs && r._paidMs > serverNow) ? r._paidMs : serverNow;
+          const next = new Date(base); next.setMonth(next.getMonth() + 1);
+          await updateDoc(doc(db,'users',r.id), { paidUntil: next });
+          if(r._pay){ try{ await updateDoc(doc(db,'payments',r.id), { claimed:false, grantedAt:serverTimestamp() }); }catch(e){} }
+          await renderAdmin();
+        }catch(e){ extBtn.disabled = false; alert('エラー · Lỗi: ' + (e.code || e.message)); }
       };
       row.appendChild(statBtn);
-      row.appendChild(btn);
+      row.appendChild(extBtn);
+
+      // Thu hồi (chỉ hiện khi đang có quyền): xoá hạn + bỏ vĩnh viễn.
+      if(r.approved || r._paidActive){
+        const revBtn = document.createElement('button');
+        revBtn.className = 'ar-act revoke';
+        revBtn.textContent = '取消 · Thu hồi';
+        revBtn.onclick = async () => {
+          if(!confirm('Thu hồi quyền truy cập của người này?')) return;
+          revBtn.disabled = true;
+          try{ await updateDoc(doc(db,'users',r.id), { paidUntil:null, approved:false }); await renderAdmin(); }
+          catch(e){ revBtn.disabled = false; alert('エラー · Lỗi: ' + (e.code || e.message)); }
+        };
+        row.appendChild(revBtn);
+      }
       item.appendChild(row);
       item.appendChild(detail);
       list.appendChild(item);
