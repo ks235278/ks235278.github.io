@@ -246,6 +246,7 @@
   .admin-row .ar-mail{flex:1;min-width:0;font-family:var(--vn);font-size:.96rem;color:var(--cream);word-break:break-all}
   .admin-row .ar-mail small{display:block;font-family:var(--jp);font-size:.7rem;color:var(--faint);margin-top:3px}
   .admin-row .ar-paid{color:var(--gold);font-weight:600}
+  .admin-row .ar-kana{color:var(--muted);font-size:.85em;font-weight:400}
   .admin-row .ar-act{font:inherit;font-family:var(--jp);font-weight:600;font-size:.8rem;border-radius:999px;
     padding:7px 14px;cursor:pointer;border:1px solid;transition:.16s;white-space:nowrap}
   .admin-row .ar-act:disabled{opacity:.5;cursor:default}
@@ -412,6 +413,8 @@
     <p class="name-hint" style="margin-bottom:16px">本名は管理者のみが確認でき、ランキングには出ません。承認を早めるためご記入ください。<br>Tên thật chỉ admin thấy, không hiện trên bảng xếp hạng. Điền giúp admin duyệt nhanh.</p>
     <label class="auth-field"><span>本名 · Tên thật</span>
       <input id="pfName" type="text" maxlength="60" autocomplete="name" placeholder="VD: Trịnh Mạnh Quang"></label>
+    <label class="auth-field"><span>カナ氏名 · Tên katakana (để đối chiếu chuyển khoản)</span>
+      <input id="pfKana" type="text" maxlength="60" placeholder="VD: チン　マン　クアン"></label>
     <label class="auth-field"><span>性別 · Giới tính</span>
       <select id="pfGender">
         <option value="">— 選択 · Chọn —</option>
@@ -429,7 +432,11 @@
         <option value="その他">その他 · Khác</option>
       </select></label>
     <label class="auth-field"><span>母語 · Tiếng mẹ đẻ</span>
-      <input id="pfLang" type="text" maxlength="30" placeholder="VD: Tiếng Việt"></label>
+      <select id="pfLang">
+        <option value="">— 選択 · Chọn —</option>
+        <option value="日本語">日本語 · Tiếng Nhật</option>
+        <option value="モンゴル語">モンゴル語 · Tiếng Mông Cổ</option>
+      </select></label>
     <p class="auth-err hidden" id="pfErr"></p>
     <p class="auth-note hidden" id="pfNote"></p>
     <button class="btn" id="pfSaveBtn">保存 · Lưu hồ sơ</button>
@@ -1182,6 +1189,7 @@ async function openProfile(){
     const s = await getDoc(doc(db,'profiles',currentUid));
     const d = s.exists() ? s.data() : {};
     g('pfName').value   = d.realName   || '';
+    g('pfKana').value   = d.kanaName   || '';
     g('pfGender').value = d.gender     || '';
     g('pfBirth').value  = d.birthYear  ? String(d.birthYear) : '';
     g('pfOcc').value    = d.occupation || '';
@@ -1193,6 +1201,7 @@ async function saveProfile(){
   const u = auth.currentUser;
   const data = {
     realName:   g('pfName').value.trim().slice(0,60),
+    kanaName:   g('pfKana').value.trim().slice(0,60),
     gender:     g('pfGender').value,
     birthYear:  g('pfBirth').value ? +g('pfBirth').value : null,
     occupation: g('pfOcc').value,
@@ -1398,7 +1407,9 @@ async function renderAdmin(){
       const item = document.createElement('div'); item.className = 'admin-item';
       const row = document.createElement('div'); row.className = 'admin-row';
       const pf = profMap[r.id] || {};
-      const nm = esc(pf.realName||'') || esc(r.displayName||'') || '(名前なし · chưa có tên)';
+      const kana = esc(pf.kanaName||'');
+      const nm = (esc(pf.realName||'') || esc(r.displayName||'') || '(名前なし · chưa có tên)')
+               + (kana ? ` <span class="ar-kana">（${kana}）</span>` : '');
       const demo = [];
       if(pf.gender)     demo.push(esc(pf.gender));
       if(pf.birthYear)  demo.push((new Date().getFullYear() - pf.birthYear) + '歳');
