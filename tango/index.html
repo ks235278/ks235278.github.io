@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>単語 Tango — Học từ vựng JLPT có thưởng</title>
+<meta name="theme-color" content="#16140f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2316140f'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23d8a43a' font-family='serif'%3E単%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#16140f;--card:#211d15;--card2:#2a2519;--line:#36301f;--cream:#ece3cf;--muted:#a99e84;
+  --gold:#d8a43a;--green:#8fbf6f;--red:#e06a5e;--radius:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--cream);min-height:100vh;
+  font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;line-height:1.55}
+.jp{font-family:'Noto Serif JP','Yu Mincho','Hiragino Mincho ProN',serif}
+a{color:var(--gold)}
+header{position:sticky;top:0;z-index:5;background:rgba(22,20,15,.94);backdrop-filter:blur(4px);
+  border-bottom:1px solid var(--line)}
+.hwrap{max-width:640px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
+.brand{font-weight:700;color:var(--gold);text-decoration:none;font-size:1.05rem;white-space:nowrap}
+nav{display:flex;gap:4px;flex:1;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav a{color:var(--muted);text-decoration:none;font-size:.86rem;padding:5px 10px;border-radius:999px;white-space:nowrap}
+nav a.on{color:var(--bg);background:var(--gold);font-weight:600}
+.uchip{font-size:.78rem;color:var(--muted);cursor:pointer;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis}
+main{max-width:640px;margin:0 auto;padding:22px 16px 60px}
+h1{font-size:1.5rem;margin-bottom:4px}
+h2{font-size:1.1rem;margin:18px 0 8px}
+.sub{color:var(--muted);font-size:.92rem;margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px}
+.card.click{cursor:pointer;transition:border-color .15s}
+.card.click:hover{border-color:var(--gold)}
+.row{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.big{font-size:1.6rem;font-weight:700;color:var(--gold)}
+.tag{display:inline-block;font-size:.72rem;color:var(--bg);background:var(--gold);border-radius:999px;padding:2px 9px;font-weight:600}
+.tag.dim{background:var(--line);color:var(--muted)}
+button{font:inherit;cursor:pointer;border:none;border-radius:10px;padding:11px 18px;font-weight:600}
+.btn{background:var(--gold);color:var(--bg);width:100%}
+.btn:disabled{opacity:.45;cursor:default}
+.btn2{background:var(--card2);color:var(--cream);border:1px solid var(--line);width:100%}
+.mini{width:auto;padding:7px 14px;font-size:.85rem}
+input,select{font:inherit;background:var(--card2);color:var(--cream);border:1px solid var(--line);
+  border-radius:8px;padding:9px 12px;width:100%}
+label{font-size:.8rem;color:var(--muted);display:block;margin:10px 0 4px}
+.word{font-size:clamp(2.5rem,13vw,4rem);text-align:center;margin:6px 0 2px;line-height:1.2}
+.word ruby rt{font-size:.32em;color:var(--muted);font-weight:400}
+.ask{color:var(--muted);text-align:center;font-size:.9rem;margin-bottom:16px}
+.opts{display:grid;gap:10px}
+.opt{background:var(--card2);border:1px solid var(--line);color:var(--cream);text-align:left;
+  padding:13px 15px;border-radius:10px;font-weight:500;font-size:.98rem}
+.opt:not(:disabled):hover{border-color:var(--gold)}
+.opt.right{border-color:var(--green);background:rgba(143,191,111,.12)}
+.opt.wrong{border-color:var(--red);background:rgba(224,106,94,.12)}
+.timer{height:5px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:16px}
+.timer i{display:block;height:100%;background:var(--gold);border-radius:99px}
+.pack{border-top:1px dashed var(--line);margin-top:16px;padding-top:14px;font-size:.95rem}
+.pack .ex{font-size:1.15rem;line-height:2.1;margin:8px 0}
+.pack .ex ruby rt{font-size:.5em;color:var(--muted)}
+.pack .ex .targ{color:var(--gold);border-bottom:2px solid var(--gold)}
+.pack .vi{color:var(--muted);font-style:italic}
+.pack .jpdef{color:var(--muted);font-size:.85rem;margin-top:6px}
+.meter{height:10px;background:var(--line);border-radius:99px;overflow:hidden;margin:8px 0}
+.meter i{display:block;height:100%;background:var(--gold)}
+.ledger{font-size:.85rem;width:100%;border-collapse:collapse}
+.ledger td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+.ledger .amt{text-align:right;font-weight:600;white-space:nowrap}
+.pos{color:var(--green)}.neg{color:var(--red)}
+.note{font-size:.82rem;color:var(--muted)}
+.err{color:var(--red);font-size:.9rem;margin-top:10px;white-space:pre-wrap}
+.ok{color:var(--green);font-size:.9rem;margin-top:10px}
+.center{text-align:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{background:var(--card2);border-radius:10px;padding:10px 12px}
+.stat b{font-size:1.3rem;color:var(--gold)}
+.stat span{display:block;font-size:.75rem;color:var(--muted)}
+.review{font-size:.9rem}
+.review .it{padding:8px 0;border-bottom:1px solid var(--line)}
+footer{text-align:center;color:#7c745f;font-size:.75rem;padding:20px}
+</style>
+</head>
+<body>
+<header><div class="hwrap">
+  <a class="brand" href="#home">単語<span style="color:var(--cream)"> Tango</span></a>
+  <nav id="nav">
+    <a href="#home" data-r="home">Trang chủ</a>
+    <a href="#learn" data-r="learn">Học</a>
+    <a href="#mock" data-r="mock">Thi thử</a>
+    <a href="#test" data-r="test">Thi thật</a>
+    <a href="#wallet" data-r="wallet">Ví</a>
+  </nav>
+  <span class="uchip" id="uchip">…</span>
+</div></header>
+<main id="view"><p class="note center">Đang tải…</p></main>
+<footer>単語 Tango · học để nhớ nghĩa — thi để giữ xu · <a href="../">Apps</a></footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
+         onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query,
+         where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-functions.js";
+
+/* ── Firebase (dùng chung project với N1 quiz) ─────────────────────── */
+const firebaseConfig = {
+  apiKey: "AIzaSyBlZPJKb6KDJvMCPp1aCyUS0PcIG_dg_hc",
+  authDomain: "n1-quiz.firebaseapp.com",
+  projectId: "n1-quiz",
+  storageBucket: "n1-quiz.firebasestorage.app",
+  messagingSenderId: "419168624563",
+  appId: "1:419168624563:web:52c6bc33f15af9e0dcf5c6"
+};
+const ADMIN_EMAIL = "ks235278@kaichi.ac.jp";
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app); auth.useDeviceLanguage();
+const db   = getFirestore(app);
+const fns  = getFunctions(app, "asia-northeast1");
+const call = (name, data) => httpsCallable(fns, name)(data).then(r => r.data);
+
+/* ── State ──────────────────────────────────────────────────────────── */
+const S = { bank: [], byId: {}, user: null, cfg: null, testing: false };
+const PKEY = "tango.progress.v1";
+let prog = {};
+try { prog = JSON.parse(localStorage.getItem(PKEY) || "{}"); } catch (e) { prog = {}; }
+const saveProg = () => localStorage.setItem(PKEY, JSON.stringify(prog));
+// hộp SRS: due sau khi trả lời đúng ở hộp i
+const INTERVALS = [0, 10*60e3, 24*3600e3, 3*24*3600e3, 7*24*3600e3, 14*24*3600e3];
+const CFG_DEFAULT = { cycleDays:30, cycleFee:1000, rewardCapRatio:0.2, targetItems:100,
+                      testSize:20, dailyLimit:1, eligibilityMinutes:3*24*60, perQuestionSec:8 };
+
+const $ = sel => document.querySelector(sel);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shuffle = a => { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const rubyWord = it => it.w === it.r ? `<span class="jp">${esc(it.w)}</span>`
+  : `<ruby class="jp">${esc(it.w)}<rt>${esc(it.r)}</rt></ruby>`;
+const fmtDate = ts => { const d = ts?.toDate ? ts.toDate() : new Date(ts); return d.toLocaleDateString("vi-VN"); };
+const errMsg = e => (e?.message || String(e)).replace(/^Firebase: */, "").replace(/ \(functions\/[a-z-]+\)\.?$/, "")
+  || "Có lỗi xảy ra.";
+const isAdmin = () => S.user && S.user.email === ADMIN_EMAIL;
+
+/* ── Tuỳ chọn đáp án: nghĩa đúng + 3 nghĩa mồi ─────────────────────── */
+function makeOpts(item) {
+  const pool = S.bank.filter(x => x.id !== item.id);
+  shuffle(pool);
+  const opts = [item.m, pool[0].m, pool[1].m, pool[2].m];
+  shuffle(opts);
+  return { opts, correct: opts.indexOf(item.m) };
+}
+
+/* ── Đồng bộ tiến độ học lên Firestore (điều kiện thi thật) ────────── */
+async function syncItem(id, p) {
+  if (!S.user || !p.firstOk) return;
+  const ref = doc(db, "tango_userItems", S.user.uid, "items", id);
+  const payload = { box:p.box, seen:p.seen, right:p.right, wrong:p.wrong, due:p.due, lastSeenAt: serverTimestamp() };
+  try { await updateDoc(ref, payload); }
+  catch (e) { // chưa có doc → tạo mới; rule bắt buộc learnedAt == request.time (chống lùi ngày)
+    try { await setDoc(ref, { ...payload, learnedAt: serverTimestamp() }); }
+    catch (e2) { console.warn("sync item:", e2); }
+  }
+}
+function recordLearn(item, ok) {
+  const p = prog[item.id] || { box:0, seen:0, right:0, wrong:0, due:0, firstOk:0 };
+  p.seen++;
+  if (ok) { p.right++; p.box = Math.min(p.box+1, 5); if (!p.firstOk) p.firstOk = Date.now(); }
+  else    { p.wrong++; p.box = Math.max(1, p.box-2); }
+  p.due = Date.now() + INTERVALS[p.box];
+  prog[item.id] = p; saveProg();
+  syncItem(item.id, p);
+  return p;
+}
+
+/* ── Router ─────────────────────────────────────────────────────────── */
+const routes = { home: vHome, learn: vLearn, mock: vMock, test: vOfficial, wallet: vWallet, admin: vAdmin };
+function route() {
+  if (S.testing && !confirm("Đang làm bài — rời đi sẽ mất phần chưa nộp. Rời đi?")) {
+    history.replaceState(null, "", "#" + S.testing); return;
+  }
+  S.testing = false;
+  const r = (location.hash || "#home").slice(1).split("?")[0];
+  document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.dataset.r === r));
+  (routes[r] || vHome)();
+}
+window.addEventListener("hashchange", route);
+
+/* ── Trang chủ ──────────────────────────────────────────────────────── */
+function homeStats() {
+  const now = Date.now(); const elig = (S.cfg?.eligibilityMinutes ?? CFG_DEFAULT.eligibilityMinutes) * 60e3;
+  let learned = 0, due = 0, ripe = 0;
+  for (const it of S.bank) {
+    const p = prog[it.id]; if (!p) continue;
+    if (p.firstOk) learned++;
+    if (p.box >= 1 && p.due <= now) due++;
+    if (p.firstOk && p.firstOk + elig <= now) ripe++;
+  }
+  return { learned, due, ripe };
+}
+function vHome() {
+  const st = homeStats();
+  $("#view").innerHTML = `
+    <h1>単語 <span style="color:var(--gold)">Tango</span></h1>
+    <p class="sub">Nhớ nghĩa từ vựng là gốc. Học miễn phí không giới hạn — thi thật để thang thưởng nhảy theo trí nhớ của bạn.</p>
+    <div class="grid2" style="margin-bottom:14px">
+      <div class="stat"><b>${st.learned}</b><span>mục đã học / ${S.bank.length}</span></div>
+      <div class="stat"><b>${st.due}</b><span>mục đến hạn ôn</span></div>
+      <div class="stat"><b>${st.ripe}</b><span>mục "chín" đủ điều kiện thi</span></div>
+      <div class="stat"><b id="hBal">–</b><span>xu trong ví</span></div>
+    </div>
+    <div class="card click" onclick="location.hash='learn'"><div class="row">
+      <div><b>Học</b><div class="note">Từ mới + ôn tập cách quãng · gói ghi nhớ</div></div><span class="tag">bắt đầu</span>
+    </div></div>
+    <div class="card click" onclick="location.hash='mock'"><div class="row">
+      <div><b>Thi thử</b><div class="note">Giống thi thật, 8 giây/câu — không dính xu</div></div><span class="tag dim">tự do</span>
+    </div></div>
+    <div class="card click" onclick="location.hash='test'"><div class="row">
+      <div><b>Thi chính thức</b><div class="note">Chấm trên máy chủ, xu nhảy theo kết quả</div></div><span class="tag">xu</span>
+    </div></div>
+    ${S.user ? "" : `<button class="btn" id="loginBtn">Đăng nhập bằng Google</button>
+      <p class="note center" style="margin-top:8px">Học không cần đăng nhập. Đăng nhập để tiến độ được tính vào điều kiện thi thật.</p>`}
+  `;
+  $("#loginBtn")?.addEventListener("click", login);
+  if (S.user) getDoc(doc(db, "tango_wallets", S.user.uid))
+    .then(s => { const el = $("#hBal"); if (el) el.textContent = s.exists() ? s.data().balance : 0; })
+    .catch(() => {});
+}
+
+/* ── Học ────────────────────────────────────────────────────────────── */
+function vLearn() {
+  const now = Date.now();
+  const due = [], fresh = [];
+  for (const it of S.bank) {
+    const p = prog[it.id];
+    if (!p) fresh.push(it); else if (p.due <= now) due.push(it);
+  }
+  shuffle(due); shuffle(fresh);
+  const queue = due.concat(fresh).slice(0, 10);
+  if (!queue.length) {
+    $("#view").innerHTML = `<h1>Học</h1><div class="card center">
+      <p>Hết mục đến hạn — não bạn đang được nghỉ đúng lịch. 🎋</p>
+      <p class="note" style="margin-top:8px">Quay lại sau, hoặc vào thi thử để kiểm tra trí nhớ.</p></div>`;
+    return;
+  }
+  let i = 0, right = 0;
+  const step = () => {
+    if (i >= queue.length) {
+      $("#view").innerHTML = `<h1>Học</h1><div class="card center">
+        <p class="big">${right}/${queue.length}</p><p class="note">câu đúng trong lượt này</p>
+        <button class="btn" style="margin-top:14px" onclick="location.hash='';location.hash='learn'">Lượt mới</button></div>`;
+      return;
+    }
+    const item = queue[i];
+    const { opts, correct } = makeOpts(item);
+    $("#view").innerHTML = `
+      <p class="note">Học · ${i+1}/${queue.length}</p>
+      <div class="card">
+        <div class="word">${rubyWord(item)}</div>
+        <p class="ask">Nghĩa tiếng Việt của từ này?</p>
+        <div class="opts">${opts.map((o,k)=>`<button class="opt" data-k="${k}">${esc(o)}</button>`).join("")}</div>
+        <div id="pack"></div>
+      </div>`;
+    document.querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => {
+      const k = +b.dataset.k, ok = k === correct;
+      if (ok) right++;
+      recordLearn(item, ok);
+      document.querySelectorAll(".opt").forEach((x,xi) => {
+        x.disabled = true;
+        if (xi === correct) x.classList.add("right");
+        else if (xi === k) x.classList.add("wrong");
+      });
+      $("#pack").innerHTML = `<div class="pack">
+        <b>${esc(item.w)}</b>（${esc(item.r)}）= <b style="color:var(--gold)">${esc(item.m)}</b>
+        ${item.ex ? `<div class="ex jp">${item.ex}</div>` : ""}
+        ${item.exvi ? `<div class="vi">${esc(item.exvi)}</div>` : ""}
+        ${item.jp ? `<div class="jpdef">📖 ${esc(item.jp)}</div>` : ""}
+        <button class="btn" style="margin-top:14px" id="nextBtn">Tiếp tục</button></div>`;
+      $("#nextBtn").addEventListener("click", () => { i++; step(); });
+      $("#nextBtn").focus();
+    }));
+  };
+  step();
+}
+
+/* ── Bộ chạy bài thi dùng chung (thi thử + thi thật) ────────────────── */
+function runTest(questions, opts) {
+  const per = (opts.perSec || S.cfg?.perQuestionSec || 8) * 1000;
+  const answers = new Array(questions.length).fill(-1);
+  let i = 0, timer = null;
+  S.testing = opts.routeName;
+  const finish = () => { clearTimeout(timer); S.testing = false; opts.onDone(answers); };
+  const step = () => {
+    if (i >= questions.length) return finish();
+    const q = questions[i];
+    $("#view").innerHTML = `
+      <p class="note">${esc(opts.title)} · câu ${i+1}/${questions.length}</p>
+      <div class="timer"><i id="tbar" style="width:100%"></i></div>
+      <div class="card">
+        <div class="word">${q.w === q.r ? `<span class="jp">${esc(q.w)}</span>`
+          : `<ruby class="jp">${esc(q.w)}<rt>${esc(q.r)}</rt></ruby>`}</div>
+        <p class="ask">Nghĩa tiếng Việt của từ này?</p>
+        <div class="opts">${q.opts.map((o,k)=>`<button class="opt" data-k="${k}">${esc(o)}</button>`).join("")}</div>
+      </div>`;
+    const bar = $("#tbar");
+    requestAnimationFrame(() => { bar.style.transition = `width ${per}ms linear`; bar.style.width = "0%"; });
+    const next = k => { clearTimeout(timer); answers[i] = k; i++; step(); };
+    timer = setTimeout(() => next(-1), per);
+    document.querySelectorAll(".opt").forEach(b =>
+      b.addEventListener("click", () => next(+b.dataset.k), { once:true }));
+  };
+  step();
+}
+function reviewHtml(questions, answers, correct) {
+  return `<div class="review">` + questions.map((q,i) => {
+    const ok = answers[i] === correct[i];
+    const chosen = answers[i] >= 0 ? q.opts[answers[i]] : "(bỏ trống)";
+    return `<div class="it"><b class="jp">${esc(q.w)}</b>（${esc(q.r)}）
+      <span class="${ok?"pos":"neg"}">${ok?"✓":"✗"}</span><br>
+      <span class="note">${ok ? esc(q.opts[correct[i]])
+        : esc(chosen) + " → đúng: " + esc(q.opts[correct[i]])}</span></div>`;
+  }).join("") + `</div>`;
+}
+
+/* ── Thi thử ────────────────────────────────────────────────────────── */
+function vMock() {
+  const learned = S.bank.filter(it => prog[it.id]?.firstOk);
+  const pool = learned.length >= 8 ? learned : S.bank;
+  $("#view").innerHTML = `
+    <h1>Thi thử</h1>
+    <p class="sub">Giống hệt thi thật: 8 giây mỗi câu, không sửa lại, không xem đáp án giữa chừng — nhưng không dính xu.</p>
+    <div class="card">
+      <p class="note">Nguồn câu hỏi: ${learned.length >= 8 ? `mục bạn đã học (${learned.length})` : "toàn bộ bank (bạn học chưa đủ 8 mục)"}</p>
+      <label>Số câu</label>
+      <select id="mockN"><option>10</option><option selected>20</option></select>
+      <button class="btn" style="margin-top:14px" id="mockGo">Bắt đầu</button>
+    </div>`;
+  $("#mockGo").addEventListener("click", () => {
+    const n = Math.min(+$("#mockN").value, pool.length);
+    const items = shuffle([...pool]).slice(0, n);
+    const qs = items.map(it => { const { opts, correct } = makeOpts(it); return { itemId:it.id, w:it.w, r:it.r, opts, correct }; });
+    runTest(qs, { title:"Thi thử", routeName:"mock", onDone: answers => {
+      let right = 0; qs.forEach((q,i) => { if (answers[i] === q.correct) right++; });
+      $("#view").innerHTML = `<h1>Kết quả thi thử</h1>
+        <div class="card center"><p class="big">${right}/${qs.length}</p><p class="note">câu đúng</p></div>
+        <div class="card">${reviewHtml(qs, answers, qs.map(q=>q.correct))}</div>
+        <button class="btn2" onclick="location.hash='';location.hash='mock'">Thi thử lại</button>`;
+    }});
+  });
+}
+
+/* ── Thi chính thức ─────────────────────────────────────────────────── */
+async function vOfficial() {
+  if (!S.user) { $("#view").innerHTML = `<h1>Thi chính thức</h1>
+    <div class="card center"><p>Cần đăng nhập để thi thật.</p>
+    <button class="btn" style="margin-top:12px" id="loginBtn">Đăng nhập bằng Google</button></div>`;
+    $("#loginBtn").addEventListener("click", login); return; }
+  $("#view").innerHTML = `<h1>Thi chính thức</h1><p class="note">Đang kiểm tra chu kỳ…</p>`;
+  let cyc = null;
+  try {
+    const qs = await getDocs(query(collection(db,"tango_cycles"),
+      where("uid","==",S.user.uid), where("status","==","active"), limit(1)));
+    cyc = qs.empty ? null : { id: qs.docs[0].id, ...qs.docs[0].data() };
+  } catch (e) { $("#view").innerHTML = `<h1>Thi chính thức</h1><p class="err">${esc(errMsg(e))}</p>`; return; }
+  if (!cyc) { $("#view").innerHTML = `<h1>Thi chính thức</h1>
+    <div class="card"><p>Bạn chưa có chu kỳ thưởng đang chạy.</p>
+    <p class="note" style="margin:8px 0 14px">Vào Ví để mở chu kỳ (trừ phí ảo từ ví, thang thưởng tối đa +20% phí). Chưa có xu? Admin cấp.</p>
+    <button class="btn" onclick="location.hash='wallet'">Mở Ví</button></div>`; return; }
+  const st = homeStats();
+  $("#view").innerHTML = `
+    <h1>Thi chính thức</h1>
+    <div class="card">
+      <div class="row"><b>Luật của bài thi</b><span class="tag">chu kỳ đến ${fmtDate(cyc.endAt)}</span></div>
+      <ul style="margin:10px 0 0 18px;font-size:.92rem">
+        <li>Máy chủ chọn tối đa ${S.cfg?.testSize ?? 20} mục "chín" (học cách đây ≥ ${Math.round((S.cfg?.eligibilityMinutes ?? 4320)/60)} giờ).</li>
+        <li>${S.cfg?.perQuestionSec ?? 8} giây mỗi câu — hết giờ tính bỏ trống, bỏ trống tính sai.</li>
+        <li>Đúng <b class="pos">+${cyc.unitPlus} xu</b> · sai <b class="neg">−${cyc.unitMinus} xu</b> vào thang thưởng (kẹp 0 → ${cyc.cap} xu).</li>
+        <li>Mỗi mục chỉ được tính 1 lần trong chu kỳ. ${S.cfg?.dailyLimit ?? 1} bài mỗi ngày.</li>
+        <li>Thoát giữa chừng không hủy được bài — hệ thống tự chốt phần còn lại là sai.</li>
+      </ul>
+      <p class="note" style="margin-top:8px">Bạn đang có ~${st.ripe} mục chín (ước tính trên máy này).</p>
+      <button class="btn" style="margin-top:14px" id="offGo">Vào thi</button>
+      <div id="offErr"></div>
+    </div>`;
+  $("#offGo").addEventListener("click", async () => {
+    $("#offGo").disabled = true; $("#offGo").textContent = "Đang lấy đề từ máy chủ…";
+    try {
+      const res = await call("startOfficialTest");
+      runTest(res.questions, { title: res.resumed ? "Thi thật (tiếp tục)" : "Thi thật", routeName:"test",
+        perSec: S.cfg?.perQuestionSec ?? 8,
+        onDone: async answers => {
+          $("#view").innerHTML = `<h1>Đang chấm…</h1><p class="note">Máy chủ đang chấm và ghi sổ.</p>`;
+          try {
+            const out = await call("submitOfficialTest", { testId: res.testId, answers });
+            $("#view").innerHTML = `<h1>Kết quả</h1>
+              <div class="card center">
+                <p class="big">${out.right} đúng · ${out.wrong + out.blank} sai/trống</p>
+                <p style="margin:6px 0" class="${out.delta >= 0 ? "pos":"neg"}">
+                  <b>${out.delta >= 0 ? "+" : ""}${out.delta} xu</b> vào thang thưởng</p>
+                <div class="meter"><i style="width:${Math.round(out.meter / out.cap * 100)}%"></i></div>
+                <p class="note">thang thưởng: ${out.meter}/${out.cap} xu${out.late ? " · ⚠ nộp quá hạn — toàn bộ tính bỏ trống" : ""}</p>
+              </div>
+              <div class="card">${reviewHtml(res.questions, out.late ? res.questions.map(()=>-1) : answers, out.correct)}</div>
+              <button class="btn2" onclick="location.hash='wallet'">Xem Ví</button>`;
+          } catch (e) { $("#view").innerHTML = `<h1>Kết quả</h1><p class="err">${esc(errMsg(e))}</p>`; }
+        }});
+    } catch (e) {
+      $("#offGo").disabled = false; $("#offGo").textContent = "Vào thi";
+      $("#offErr").innerHTML = `<p class="err">${esc(errMsg(e))}</p>`;
+    }
+  });
+}
+
+/* ── Ví ─────────────────────────────────────────────────────────────── */
+async function vWallet() {
+  if (!S.user) { $("#view").innerHTML = `<h1>Ví</h1>
+    <div class="card center"><p>Đăng nhập để xem ví.</p>
+    <button class="btn" style="margin-top:12px" id="loginBtn">Đăng nhập bằng Google</button></div>`;
+    $("#loginBtn").addEventListener("click", login); return; }
+  $("#view").innerHTML = `<h1>Ví</h1><p class="note">Đang tải…</p>`;
+  let bal = 0, cyc = null, rows = [];
+  try {
+    const [ws, cs, ls] = await Promise.all([
+      getDoc(doc(db, "tango_wallets", S.user.uid)),
+      getDocs(query(collection(db,"tango_cycles"), where("uid","==",S.user.uid), where("status","==","active"), limit(1))),
+      getDocs(query(collection(db,"tango_wallets",S.user.uid,"ledger"), orderBy("seq","desc"), limit(15))),
+    ]);
+    bal = ws.exists() ? ws.data().balance : 0;
+    cyc = cs.empty ? null : { id: cs.docs[0].id, ...cs.docs[0].data() };
+    rows = ls.docs.map(d => d.data());
+  } catch (e) { $("#view").innerHTML = `<h1>Ví</h1><p class="err">${esc(errMsg(e))}</p>`; return; }
+  const expired = cyc && cyc.endAt?.toMillis && cyc.endAt.toMillis() <= Date.now();
+  const TYPE_VI = { admin_adjust:"admin cấp/trừ", cycle_fee:"phí mở chu kỳ", cycle_settle:"chốt thưởng chu kỳ" };
+  $("#view").innerHTML = `
+    <h1>Ví</h1>
+    <div class="card"><div class="row"><div><b>Số dư</b><div class="note">xu ảo — chỉ máy chủ và admin ghi được</div></div>
+      <span class="big">${bal} xu</span></div></div>
+    ${cyc ? `
+    <div class="card">
+      <div class="row"><b>Chu kỳ đang chạy</b><span class="tag">${expired ? "đã hết hạn" : "đến " + fmtDate(cyc.endAt)}</span></div>
+      <div class="meter"><i style="width:${Math.round((cyc.rewardMeter||0) / cyc.cap * 100)}%"></i></div>
+      <p class="note">thang thưởng ${cyc.rewardMeter||0}/${cyc.cap} xu · đúng +${cyc.unitPlus} / sai −${cyc.unitMinus} ·
+        đã thi ${cyc.testsTaken||0} bài</p>
+      ${expired ? `<button class="btn" style="margin-top:12px" id="settleBtn">Chốt chu kỳ — nhận ${cyc.rewardMeter||0} xu</button>` : ""}
+    </div>` : `
+    <div class="card">
+      <b>Chưa có chu kỳ</b>
+      <p class="note" style="margin:6px 0 12px">Mở chu kỳ ${S.cfg?.cycleDays ?? 30} ngày: trừ ${S.cfg?.cycleFee ?? 1000} xu phí,
+        thang thưởng chạy 0 → ${Math.round((S.cfg?.cycleFee ?? 1000) * (S.cfg?.rewardCapRatio ?? .2))} xu theo kết quả thi thật.</p>
+      <button class="btn" id="openBtn" ${bal < (S.cfg?.cycleFee ?? 1000) ? "disabled" : ""}>Mở chu kỳ (−${S.cfg?.cycleFee ?? 1000} xu)</button>
+      ${bal < (S.cfg?.cycleFee ?? 1000) ? `<p class="note" style="margin-top:8px">Chưa đủ xu — nhờ admin cấp xu khởi điểm.</p>` : ""}
+    </div>`}
+    <div class="card"><b>Sổ cái gần đây</b>
+      ${rows.length ? `<table class="ledger" style="margin-top:8px">${rows.map(r => `<tr>
+        <td>#${r.seq} · ${esc(TYPE_VI[r.type] || r.type)}${r.reason ? `<br><span class="note">${esc(r.reason)}</span>` : ""}</td>
+        <td class="amt ${r.amount >= 0 ? "pos":"neg"}">${r.amount >= 0 ? "+" : ""}${r.amount}</td>
+        <td class="amt note">${r.balanceAfter}</td></tr>`).join("")}</table>`
+      : `<p class="note" style="margin-top:8px">Chưa có giao dịch. Số dư chỉ thay đổi qua máy chủ — mọi biến động đều có bút toán ở đây.</p>`}
+    </div>
+    <div id="wErr"></div>
+    ${isAdmin() ? `<p class="note center"><a href="#admin">→ Panel admin</a></p>` : ""}`;
+  const act = async (name, btn) => {
+    btn.disabled = true;
+    try { await call(name); vWallet(); }
+    catch (e) { btn.disabled = false; $("#wErr").innerHTML = `<p class="err">${esc(errMsg(e))}</p>`; }
+  };
+  $("#openBtn")?.addEventListener("click", ev => act("openCycle", ev.target));
+  $("#settleBtn")?.addEventListener("click", ev => act("settleCycle", ev.target));
+}
+
+/* ── Admin ──────────────────────────────────────────────────────────── */
+async function vAdmin() {
+  if (!isAdmin()) { $("#view").innerHTML = `<h1>Admin</h1><p class="err">Chỉ dành cho admin.</p>`; return; }
+  $("#view").innerHTML = `
+    <h1>Admin</h1>
+    <div class="card">
+      <b>Cấp / trừ xu</b>
+      <label>Email người dùng (hoặc UID)</label><input id="aWho" placeholder="ai-do@gmail.com">
+      <label>Số xu (+cấp / −trừ)</label><input id="aAmt" type="number" value="2000">
+      <label>Lý do (ghi vào sổ cái)</label><input id="aWhy" placeholder="cấp xu khởi điểm">
+      <button class="btn" style="margin-top:12px" id="aGo">Thực hiện</button>
+      <div id="aOut"></div>
+    </div>
+    <div class="card">
+      <b>Cấu hình (tango_config/app)</b>
+      <div class="grid2">
+        <div><label>eligibilityMinutes (chín sau)</label><input id="cElig" type="number"></div>
+        <div><label>testSize (số câu/bài)</label><input id="cSize" type="number"></div>
+        <div><label>cycleFee (phí chu kỳ)</label><input id="cFee" type="number"></div>
+        <div><label>cycleDays (số ngày)</label><input id="cDays" type="number"></div>
+      </div>
+      <p class="note" style="margin-top:8px">Dev: đặt eligibilityMinutes = 3 để mục "chín" sau 3 phút.</p>
+      <button class="btn2" style="margin-top:10px" id="cSave">Lưu cấu hình</button>
+      <div id="cOut"></div>
+    </div>
+    <div class="card"><b>Ví người dùng</b><div id="aWallets" class="note" style="margin-top:8px">Đang tải…</div></div>
+    <div class="card"><b>Bài thi bị gắn cờ</b><div id="aFlags" class="note" style="margin-top:8px">Đang tải…</div></div>`;
+  $("#aGo").addEventListener("click", async () => {
+    const who = $("#aWho").value.trim(), amount = +$("#aAmt").value, reason = $("#aWhy").value.trim();
+    $("#aOut").innerHTML = `<p class="note">Đang thực hiện…</p>`;
+    try {
+      const arg = who.includes("@") ? { email: who } : { uid: who };
+      const out = await call("adminAdjustBalance", { ...arg, amount, reason });
+      $("#aOut").innerHTML = `<p class="ok">OK — số dư mới của ${esc(who)}: ${out.balance} xu (bút toán #${out.seq}).</p>`;
+    } catch (e) { $("#aOut").innerHTML = `<p class="err">${esc(errMsg(e))}</p>`; }
+  });
+  const cfgRef = doc(db, "tango_config", "app");
+  try {
+    const s = await getDoc(cfgRef); const c = { ...CFG_DEFAULT, ...(s.exists() ? s.data() : {}) };
+    $("#cElig").value = c.eligibilityMinutes; $("#cSize").value = c.testSize;
+    $("#cFee").value = c.cycleFee; $("#cDays").value = c.cycleDays;
+  } catch (e) {}
+  $("#cSave").addEventListener("click", async () => {
+    try {
+      await setDoc(cfgRef, { eligibilityMinutes:+$("#cElig").value, testSize:+$("#cSize").value,
+        cycleFee:+$("#cFee").value, cycleDays:+$("#cDays").value }, { merge:true });
+      S.cfg = { ...CFG_DEFAULT, ...(await getDoc(cfgRef)).data() };
+      $("#cOut").innerHTML = `<p class="ok">Đã lưu.</p>`;
+    } catch (e) { $("#cOut").innerHTML = `<p class="err">${esc(errMsg(e))}</p>`; }
+  });
+  try {
+    const ws = await getDocs(query(collection(db, "tango_wallets"), limit(50)));
+    $("#aWallets").innerHTML = ws.empty ? "Chưa có ví nào." :
+      `<table class="ledger">${ws.docs.map(d => `<tr><td>${esc(d.data().email || d.id)}</td>
+        <td class="amt">${d.data().balance} xu</td>
+        <td class="amt"><button class="mini btn2" data-uid="${esc(d.id)}">kiểm toán</button></td></tr>`).join("")}</table>`;
+    document.querySelectorAll("[data-uid]").forEach(b => b.addEventListener("click", async () => {
+      b.textContent = "…";
+      try { const r = await call("auditWallet", { uid: b.dataset.uid });
+        b.textContent = r.ok ? "khớp ✓" : `LỆCH: ví ${r.balance} ≠ sổ ${r.sum}`;
+        b.style.color = r.ok ? "var(--green)" : "var(--red)";
+      } catch (e) { b.textContent = "lỗi"; }
+    }));
+  } catch (e) { $("#aWallets").innerHTML = `<span class="err">${esc(errMsg(e))}</span>`; }
+  try {
+    const fs = await getDocs(query(collection(db, "tango_tests"), where("flagged","==",true), limit(20)));
+    $("#aFlags").innerHTML = fs.empty ? "Không có bài nào bị gắn cờ." :
+      fs.docs.map(d => { const t = d.data(); return `<div class="it">${esc(t.uid)} · ${t.score?.right}/${t.questions?.length}
+        đúng trong ${(t.timeMs/1000).toFixed(1)}s · ${esc(t.flagReason || "")}</div>`; }).join("");
+  } catch (e) { $("#aFlags").innerHTML = `<span class="err">${esc(errMsg(e))}</span>`; }
+}
+
+/* ── Auth ───────────────────────────────────────────────────────────── */
+async function login() {
+  const prov = new GoogleAuthProvider();
+  try { await signInWithPopup(auth, prov); }
+  catch (e) {
+    if (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment")
+      await signInWithRedirect(auth, prov);
+    else alert(errMsg(e));
+  }
+}
+getRedirectResult(auth).catch(() => {});
+onAuthStateChanged(auth, u => {
+  S.user = u;
+  const chip = $("#uchip");
+  if (u) {
+    chip.textContent = u.displayName || u.email;
+    chip.title = "Bấm để đăng xuất";
+    chip.onclick = () => { if (confirm("Đăng xuất?")) signOut(auth); };
+  } else {
+    chip.textContent = "Đăng nhập"; chip.title = "";
+    chip.onclick = login;
+  }
+  route();
+});
+
+/* ── Khởi động ──────────────────────────────────────────────────────── */
+(async () => {
+  try {
+    const res = await fetch("data/bank.json");
+    const bank = await res.json();
+    S.bank = bank.items; S.bank.forEach(it => S.byId[it.id] = it);
+  } catch (e) {
+    $("#view").innerHTML = `<p class="err">Không tải được ngân hàng từ vựng (data/bank.json).</p>`;
+    return;
+  }
+  try {
+    const s = await getDoc(doc(db, "tango_config", "app"));
+    S.cfg = { ...CFG_DEFAULT, ...(s.exists() ? s.data() : {}) };
+  } catch (e) { S.cfg = { ...CFG_DEFAULT }; }
+  route();
+})();
+</script>
+</body>
+</html>

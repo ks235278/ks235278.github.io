@@ -1,0 +1,11 @@
+{
+  "name": "tango-functions",
+  "private": true,
+  "description": "Tango - Cloud Functions cham thi va so cai xu ao",
+  "main": "index.js",
+  "engines": { "node": "20" },
+  "dependencies": {
+    "firebase-admin": "^12.3.0",
+    "firebase-functions": "^5.1.0"
+  }
+}
