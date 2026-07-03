@@ -15,6 +15,59 @@ SRC  = HERE.parent / "n1-quiz" / "index.html"           # .../ghsite/n1-quiz/ind
 
 VN_RE = re.compile(r"「(.+?)」\s*(?:[（(](.+?)[)）])?\s*[:：]\s*(.+)", re.S)
 BLANK_RE = re.compile(r'<span class="blank">.*?</span>')
+KANJI_RUN = re.compile(r"[一-鿿々〆ヶ]+|[^一-鿿々〆ヶ]+")
+HAS_KANJI = re.compile(r"[一-鿿々〆ヶ]")
+
+_tagger = None
+def fugashi_reading(text):
+    """Reading hiragana của một cụm kanji, tra bằng fugashi/unidic-lite."""
+    global _tagger
+    if _tagger is None:
+        import fugashi
+        _tagger = fugashi.Tagger()
+    kata = "".join((w.feature.kana or w.surface) for w in _tagger(text))
+    return "".join(chr(ord(c) - 0x60) if "ァ" <= c <= "ヶ" else c for c in kata)
+
+
+def _align_parts(word, reading):
+    """Căn chỉnh reading với surface: cụm kana giữ nguyên làm mốc, cụm kanji ăn phần reading ở giữa."""
+    parts = [(m.group(0), bool(HAS_KANJI.match(m.group(0)[0]))) for m in KANJI_RUN.finditer(word)]
+    pat = "".join(f"(?P<k{i}>.+?)" if isk else re.escape(s) for i, (s, isk) in enumerate(parts))
+    m = re.fullmatch(pat, reading)
+    if m:
+        return "".join(f"<ruby>{s}<rt>{m.group(f'k{i}')}</rt></ruby>" if isk else s
+                       for i, (s, isk) in enumerate(parts))
+    if sum(1 for _, isk in parts if isk) == 1:  # reading chỉ là của lõi kanji duy nhất
+        return "".join(f"<ruby>{s}<rt>{reading}</rt></ruby>" if isk else s for s, isk in parts)
+    return None
+
+
+def ruby_html(word, reading):
+    """HTML furigana theo TỪNG CỤM KANJI (không phủ cả cụm lên toàn từ).
+
+    1. Căn chỉnh reading toàn phần / reading-lõi với surface.
+    2. Bó tay mới tra fugashi — nhưng tra theo CẢ TỪ (đúng ngữ cảnh) rồi
+       căn chỉnh lại trong từng token, không tra rời từng khối kanji.
+    """
+    if word == reading or not HAS_KANJI.search(word):
+        return None  # thuần kana: không cần furigana
+    html = _align_parts(word, reading)
+    if html:
+        return html
+    global _tagger
+    if _tagger is None:
+        import fugashi
+        _tagger = fugashi.Tagger()
+    out = []
+    for tk in _tagger(word):
+        surf = tk.surface
+        if not HAS_KANJI.search(surf):
+            out.append(surf)
+            continue
+        kata = tk.feature.kana or surf
+        rd = "".join(chr(ord(c) - 0x60) if "ァ" <= c <= "ヶ" else c for c in kata)
+        out.append(_align_parts(surf, rd) or f"<ruby>{surf}<rt>{rd}</rt></ruby>")
+    return "".join(out)
 
 
 def fnv1a64(s: str) -> str:
@@ -54,7 +107,10 @@ def main():
             skipped += 1
             continue
         word, reading, meaning = ((g or "").strip() for g in m.groups())
-        reading = reading or word  # từ thuần kana: cách đọc là chính nó
+        if not reading:
+            # ghi chú gốc không kèm cách đọc: thuần kana thì đọc là chính nó,
+            # có kanji thì suy cách đọc bằng fugashi (tra theo cả từ)
+            reading = fugashi_reading(word) if HAS_KANJI.search(word) else word
         meaning = meaning.rstrip(". ").strip()
         key = f"{word}|{reading}"
         if key in seen:
@@ -70,10 +126,12 @@ def main():
             fill = f'<span class="targ"><ruby>{surface}<rt>{rt}</rt></ruby></span>'
             ex = BLANK_RE.sub(fill, ex)
 
+        wf = ruby_html(word, reading)
         items.append({
             "id": "t_" + fnv1a64(key),
             "w": word,
             "r": reading,
+            **({"wf": wf} if wf else {}),
             "m": meaning,
             "jp": (it.get("jp") or "").strip(),
             "ex": ex,

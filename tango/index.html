@@ -68,6 +68,9 @@ label{font-size:.8rem;color:var(--muted);display:block;margin:10px 0 4px}
 .ledger td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}
 .ledger .amt{text-align:right;font-weight:600;white-space:nowrap}
 .pos{color:var(--green)}.neg{color:var(--red)}
+.spk{background:none;border:1px solid var(--line);border-radius:8px;padding:2px 8px;
+  font-size:.85rem;cursor:pointer;vertical-align:middle}
+.spk:hover{border-color:var(--gold)}
 .note{font-size:.82rem;color:var(--muted)}
 .err{color:var(--red);font-size:.9rem;margin-top:10px;white-space:pre-wrap}
 .ok{color:var(--green);font-size:.9rem;margin-top:10px}
@@ -134,8 +137,32 @@ const CFG_DEFAULT = { cycleDays:30, cycleFee:1000, rewardCapRatio:0.2, targetIte
 const $ = sel => document.querySelector(sel);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const shuffle = a => { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
-const rubyWord = it => it.w === it.r ? `<span class="jp">${esc(it.w)}</span>`
+// wf = furigana theo từng cụm kanji, tính sẵn trong bank (tools/extract_bank.py)
+const rubyWord = it => it.wf ? `<span class="jp">${it.wf}</span>`
+  : it.w === it.r ? `<span class="jp">${esc(it.w)}</span>`
   : `<ruby class="jp">${esc(it.w)}<rt>${esc(it.r)}</rt></ruby>`;
+
+/* ── Phát âm: MP3 neural tạo sẵn, hỏng thì rơi về giọng máy ─────────── */
+let voiceBox = null;
+function speak(it) {
+  if (!it) return;
+  try {
+    if (!voiceBox) voiceBox = new Audio();
+    voiceBox.src = `audio/${it.id}.mp3`;
+    voiceBox.play().catch(() => speakTTS(it));
+  } catch (e) { speakTTS(it); }
+}
+function speakTTS(it) {
+  try {
+    const u = new SpeechSynthesisUtterance(it.r || it.w);
+    u.lang = "ja-JP"; u.rate = 0.9;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  } catch (e) {}
+}
+document.addEventListener("click", e => {
+  const el = e.target.closest?.("[data-spk]");
+  if (el && S.byId[el.dataset.spk]) speak(S.byId[el.dataset.spk]);
+});
 const fmtDate = ts => { const d = ts?.toDate ? ts.toDate() : new Date(ts); return d.toLocaleDateString("vi-VN"); };
 const errMsg = e => (e?.message || String(e)).replace(/^Firebase: */, "").replace(/ \(functions\/[a-z-]+\)\.?$/, "")
   || "Có lỗi xảy ra.";
@@ -269,8 +296,10 @@ function vLearn() {
         if (xi === correct) x.classList.add("right");
         else if (xi === k) x.classList.add("wrong");
       });
+      speak(item);
       $("#pack").innerHTML = `<div class="pack">
-        <b>${esc(item.w)}</b>（${esc(item.r)}）= <b style="color:var(--gold)">${esc(item.m)}</b>
+        <b>${esc(item.w)}</b>（${esc(item.r)}）<button class="spk" data-spk="${esc(item.id)}" aria-label="phát âm">🔊</button>
+        = <b style="color:var(--gold)">${esc(item.m)}</b>
         ${item.ex ? `<div class="ex jp">${item.ex}</div>` : ""}
         ${item.exvi ? `<div class="vi">${esc(item.exvi)}</div>` : ""}
         ${item.jp ? `<div class="jpdef">📖 ${esc(item.jp)}</div>` : ""}
@@ -296,8 +325,7 @@ function runTest(questions, opts) {
       <p class="note">${esc(opts.title)} · câu ${i+1}/${questions.length}</p>
       <div class="timer"><i id="tbar" style="width:100%"></i></div>
       <div class="card">
-        <div class="word">${q.w === q.r ? `<span class="jp">${esc(q.w)}</span>`
-          : `<ruby class="jp">${esc(q.w)}<rt>${esc(q.r)}</rt></ruby>`}</div>
+        <div class="word">${rubyWord(S.byId[q.itemId] || q)}</div>
         <p class="ask">Nghĩa tiếng Việt của từ này?</p>
         <div class="opts">${q.opts.map((o,k)=>`<button class="opt" data-k="${k}">${esc(o)}</button>`).join("")}</div>
       </div>`;
@@ -315,6 +343,7 @@ function reviewHtml(questions, answers, correct) {
     const ok = answers[i] === correct[i];
     const chosen = answers[i] >= 0 ? q.opts[answers[i]] : "(bỏ trống)";
     return `<div class="it"><b class="jp">${esc(q.w)}</b>（${esc(q.r)}）
+      <button class="spk" data-spk="${esc(q.itemId)}" aria-label="phát âm">🔊</button>
       <span class="${ok?"pos":"neg"}">${ok?"✓":"✗"}</span><br>
       <span class="note">${ok ? esc(q.opts[correct[i]])
         : esc(chosen) + " → đúng: " + esc(q.opts[correct[i]])}</span></div>`;
