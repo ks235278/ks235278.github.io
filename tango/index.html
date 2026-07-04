@@ -99,6 +99,13 @@ label{font-size:.8rem;color:var(--muted);display:block;margin:10px 0 4px}
 .pop{animation:pop .25s ease}
 @keyframes pop{0%{transform:scale(.72);opacity:0}100%{transform:scale(1);opacity:1}}
 .cnt{font-variant-numeric:tabular-nums}
+.gstep{display:flex;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line);align-items:flex-start}
+.gstep:last-child{border-bottom:none}
+.gdot{flex:0 0 26px;height:26px;border-radius:50%;background:var(--card2);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--muted)}
+.gdone .gdot{background:rgba(143,191,111,.15);border-color:var(--green);color:var(--green)}
+.gcur .gdot{background:var(--gold);border-color:var(--gold);color:var(--bg)}
+.gcur>div>b{color:var(--gold)}
 footer{text-align:center;color:#7c745f;font-size:.75rem;padding:20px}
 </style>
 </head>
@@ -111,6 +118,7 @@ footer{text-align:center;color:#7c745f;font-size:.75rem;padding:20px}
     <a href="#mock" data-r="mock">Thi thử</a>
     <a href="#test" data-r="test">Thi thật</a>
     <a href="#wallet" data-r="wallet">Ví</a>
+    <a href="#guide" data-r="guide">Hướng dẫn</a>
   </nav>
   <span class="uchip" id="uchip">…</span>
 </div></header>
@@ -259,7 +267,7 @@ function recordLearn(item, ok) {
 }
 
 /* ── Router ─────────────────────────────────────────────────────────── */
-const routes = { home: vHome, learn: vLearn, mock: vMock, test: vOfficial, wallet: vWallet, admin: vAdmin };
+const routes = { home: vHome, learn: vLearn, mock: vMock, test: vOfficial, wallet: vWallet, guide: vGuide, admin: vAdmin };
 function route() {
   if (S.testing && !confirm("Đang làm bài — rời đi sẽ mất phần chưa nộp. Rời đi?")) {
     history.replaceState(null, "", "#" + S.testing); return;
@@ -303,6 +311,7 @@ function vHome() {
     <div class="card click" onclick="location.hash='test'"><div class="row">
       <div><b>Thi chính thức 🎰</b><div class="note">Không giới hạn số bài · đặt cược xu, chuỗi 🔥, Câu Hoàng Kim ✨, kèo Tất Tay ×2</div></div><span class="tag">xu</span>
     </div></div>
+    <p class="note center" style="margin:4px 0 10px"><a href="#guide">📖 Hướng dẫn sử dụng — xem bạn đang ở bước nào</a></p>
     ${S.user ? "" : `<button class="btn" id="loginBtn">Đăng nhập bằng Google</button>
       <p class="note center" style="margin-top:8px">Học không cần đăng nhập. Đăng nhập để tiến độ được tính vào điều kiện thi thật.</p>`}
   `;
@@ -807,6 +816,158 @@ async function vAdmin() {
       fs.docs.map(d => { const t = d.data(); return `<div class="it">${esc(t.uid)} · ${t.score?.right}/${t.questions?.length}
         đúng trong ${(t.timeMs/1000).toFixed(1)}s · ${esc(t.flagReason || "")}</div>`; }).join("");
   } catch (e) { $("#aFlags").innerHTML = `<span class="err">${esc(errMsg(e))}</span>`; }
+}
+
+/* ── Hướng dẫn: "bạn đang ở bước nào" + luật chơi dễ hiểu ───────────── */
+async function vGuide() {
+  const cfg = S.cfg || CFG_DEFAULT;
+  const st = homeStats();
+  const eligH = Math.round((cfg.eligibilityMinutes ?? 4320) / 60);
+  const winCap = cfg.dailyWinCap ?? 3000;
+  $("#view").innerHTML = `<h1>Hướng dẫn 📖</h1><p class="note">Đang xem tình trạng của bạn…</p>`;
+  let bal = null, cyc = null, gNet = 0;
+  if (S.user) {
+    try {
+      const [ws, cs] = await Promise.all([
+        getDoc(doc(db, "tango_wallets", S.user.uid)),
+        getDocs(query(collection(db, "tango_cycles"),
+          where("uid", "==", S.user.uid), where("status", "==", "active"), limit(1))),
+      ]);
+      const w = ws.exists() ? ws.data() : {};
+      bal = w.balance || 0;
+      gNet = w.gDay === jstToday() ? (w.gNet || 0) : 0;
+      cyc = cs.empty ? null : cs.docs[0].data();
+    } catch (e) {}
+  }
+  const expired = cyc && cyc.endAt?.toMillis && cyc.endAt.toMillis() <= Date.now();
+  const cap0 = cyc ? cyc.cap : Math.round((cfg.cycleFee ?? 1000) * (cfg.rewardCapRatio ?? .2));
+  const uP = cyc ? cyc.unitPlus : Math.max(1, Math.ceil(cap0 / (cfg.targetItems ?? 100)));
+  const uM = cyc ? cyc.unitMinus : Math.max(1, Math.floor(uP / 2));
+
+  const steps = [
+    { t: "Học từ", done: st.learned > 0,
+      n: `${st.learned}/${S.bank.length} mục đã học · miễn phí, không cần đăng nhập — vào tab Học` },
+    { t: "Đăng nhập Google", done: !!S.user,
+      n: S.user ? `đang đăng nhập: ${esc(S.user.email || "")}`
+        : `bấm "Đăng nhập" góc phải trên — chỉ tiến độ học KHI đã đăng nhập mới được tính vào điều kiện thi thật` },
+    { t: `Nuôi mục "chín"`, done: st.ripe >= 4,
+      n: `~${st.ripe} mục chín (cần ≥ 4 để có đề thi) · một mục "chín" sau ${eligH} giờ kể từ lần trả lời ĐÚNG đầu tiên lúc đã đăng nhập` },
+    { t: "Mở chu kỳ thưởng", done: !!cyc && !expired,
+      n: cyc ? (expired
+          ? `chu kỳ ĐÃ HẾT HẠN — vào Ví bấm "Chốt chu kỳ" nhận ${cyc.rewardMeter || 0} xu, rồi mở chu kỳ mới`
+          : `đang chạy đến ${fmtDate(cyc.endAt)} · thang thưởng ${cyc.rewardMeter || 0}/${cyc.cap} xu`)
+        : `vào Ví bấm "Mở chu kỳ" — phí ${cfg.cycleFee} xu ảo${bal !== null ? ` (ví bạn đang có ${bal} xu)` : ""}; chưa có xu thì nhờ admin cấp` },
+    { t: "Thi thật & đặt cược", done: !!cyc && !expired && (cyc.testsTaken || 0) > 0,
+      n: cyc && !expired
+        ? `đã thi ${cyc.testsTaken || 0} bài chu kỳ này — KHÔNG giới hạn số bài · cược hôm nay ròng ${gNet >= 0 ? "+" : ""}${gNet}/${winCap} xu`
+        : `mở khóa khi có chu kỳ đang chạy` },
+  ];
+  let cur = steps.findIndex(s => !s.done);
+  if (cur < 0) cur = steps.length - 1;
+
+  $("#view").innerHTML = `
+    <h1>Hướng dẫn 📖</h1>
+    <p class="sub">Mở trang này bất cứ lúc nào để biết mình đang ở đâu và luật chơi vận hành ra sao.</p>
+    <div class="card">
+      <div class="row"><b>🧭 Bạn đang ở bước nào?</b>
+        ${S.user ? (bal !== null ? `<span class="tag">${bal} xu trong ví</span>` : "")
+                 : `<span class="tag dim">chưa đăng nhập</span>`}</div>
+      <div style="margin-top:8px">${steps.map((s, i) => `
+        <div class="gstep ${s.done ? "gdone" : i === cur ? "gcur" : ""}">
+          <span class="gdot">${s.done ? "✓" : i + 1}</span>
+          <div><b>${s.t}</b>${!s.done && i === cur ? ` <span class="tag">bạn đang ở đây</span>` : ""}
+            <div class="note">${s.n}</div></div>
+        </div>`).join("")}</div>
+      <p class="note" style="margin-top:8px">Số mục đã học/chín là ước tính lưu trên máy này; xu và chu kỳ đọc thẳng từ máy chủ.</p>
+    </div>
+
+    <h2>1 · Học — một khuôn duy nhất</h2>
+    <div class="card" style="font-size:.93rem">
+      Nhìn từ to giữa màn (có phiên âm furigana) → chọn nghĩa tiếng Việt trong 4 ô.
+      Chọn xong hiện <b>gói ghi nhớ</b>: câu ví dụ + bản dịch + định nghĩa Nhật, nút 🔊 đọc từ và đọc cả câu.
+      <div class="note" style="margin-top:6px">Máy tự xếp lịch ôn cách quãng: trả lời đúng → hẹn gặp lại xa dần
+      (10 phút → 1 → 3 → 7 → 14 ngày); trả lời sai → quay lại sớm hơn. Thấy "hết mục đến hạn"
+      nghĩa là não đang được nghỉ đúng lịch — không phải app hỏng.</div>
+    </div>
+
+    <h2>2 · Mục "chín" — vé vào phòng thi</h2>
+    <div class="card" style="font-size:.93rem">
+      Một từ được tính <b>"chín"</b> khi bạn trả lời đúng nó lần đầu <b>lúc đã đăng nhập</b>,
+      và từ lúc đó đã qua đủ <b>${eligH} giờ</b>. Cần <b>≥ 4 mục chín</b> mới có đề thi thật.
+      <div class="note" style="margin-top:6px">Vì sao phải chờ? Vì thi thật đo <b>trí nhớ dài hạn</b> —
+      thứ kỳ thi JLPT thật sự đo — chứ không đo học vẹt trong ngày.</div>
+    </div>
+
+    <h2>3 · Thi thử — bàn tập miễn phí</h2>
+    <div class="card" style="font-size:.93rem">
+      Y hệt thi thật: ${cfg.perQuestionSec ?? 8} giây mỗi câu, không sửa lại — nhưng <b>không dính xu</b>.
+      Kết quả vẫn được nạp vào lịch ôn, nên thi thử cũng là học.
+    </div>
+
+    <h2>4 · Chu kỳ thưởng — hợp đồng ${cfg.cycleDays ?? 30} ngày với chính mình</h2>
+    <div class="card" style="font-size:.93rem">
+      Vào <b>Ví</b> bấm "Mở chu kỳ": trừ <b>${cfg.cycleFee ?? 1000} xu</b> phí, chạy ${cfg.cycleDays ?? 30} ngày.
+      <b>Thang thưởng</b> chạy từ 0 đến ${cap0} xu: mỗi mục đúng trong thi thật <b class="pos">+${uP}</b>,
+      sai/bỏ trống <b class="neg">−${uM}</b> (không tụt quá 0).
+      <ul style="margin:8px 0 0 18px">
+        <li>Chỉ mục ra đề <b>LẦN ĐẦU trong chu kỳ</b> mới làm thang nhích — mục thi lại chỉ ăn/thua tiền cược.</li>
+        <li>Hết hạn → vào Ví bấm <b>"Chốt chu kỳ"</b> để số xu trên thang chảy vào ví, rồi mở chu kỳ mới.</li>
+      </ul>
+    </div>
+
+    <h2>5 · Thi chính thức — không giới hạn số bài</h2>
+    <div class="card" style="font-size:.93rem">
+      Máy chủ chọn tối đa ${cfg.testSize ?? 20} mục chín (ưu tiên mục chưa ra đề; hết thì ra lại mục
+      <b>quá hạn ôn lâu nhất</b> — chính là ôn tập trá hình). ${cfg.perQuestionSec ?? 8} giây/câu, hết giờ = bỏ trống = sai.
+      <div class="note" style="margin-top:6px">⚠ Bỏ dở bài hoặc nộp quá hạn: các câu còn lại tính sai
+      <b>và mất luôn tiền cược</b>. Đề chấm trên máy chủ — đáp án không bao giờ nằm trong máy bạn.</div>
+    </div>
+
+    <h2>6 · Bàn cược 🎲</h2>
+    <div class="card" style="font-size:.93rem">
+      Trước mỗi bài được đặt cược <b>0 → ${cfg.maxStake ?? 500} xu</b> (0 = thi tự do, không mất gì).
+      Nộp bài xong máy chủ trả thưởng theo độ chính xác:
+      <table class="paytbl">
+        <tr><td>💎 Đúng 100%</td><td>×3 JACKPOT</td></tr>
+        <tr><td>Đúng ≥ 90%</td><td>×2</td></tr>
+        <tr><td>Đúng ≥ 80%</td><td>×1.5</td></tr>
+        <tr><td>Đúng ≥ 70%</td><td>×1.1</td></tr>
+        <tr><td>Đúng ≥ 60%</td><td>×0.5</td></tr>
+        <tr><td>Dưới 60%</td><td class="neg">mất sạch cược</td></tr>
+        <tr><td>Chuỗi đúng liên tiếp 🔥 ≥ 5 / ≥ 10</td><td>+10% / +25%</td></tr>
+        <tr><td>Câu Hoàng Kim ✨ (1 câu/bài, báo trước trên đề)</td><td>+50%</td></tr>
+      </table>
+      <div class="note" style="margin-top:8px">🔒 Trần thắng ròng <b>+${winCap} xu/ngày</b> (giờ Nhật) —
+      chạm trần thì bàn cược nghỉ đến 0h, nhưng thi tự do (cược 0) vẫn không giới hạn.</div>
+    </div>
+
+    <h2>7 · Kèo Tất Tay ×2 🂠</h2>
+    <div class="card" style="font-size:.93rem">
+      Thắng cược xong sẽ được mời chơi tiếp <b>một câu duy nhất</b>: máy chủ rút từ bạn
+      <b>hay sai nhất</b> (ngoài đề vừa thi). Đúng → <b class="pos">nhân đôi tiền vừa thắng</b>.
+      Sai → <b class="neg">mất sạch tiền vừa thắng</b>.
+      <div class="note" style="margin-top:6px">Có ${cfg.dblWindowSec ?? 45} giây để quyết định và trả lời.
+      Không bấm gì hoặc bấm "Rút lui" = giữ nguyên xu, không mất gì.</div>
+    </div>
+
+    <h2>8 · Ví & sổ cái — xu ảo, minh bạch</h2>
+    <div class="card" style="font-size:.93rem">
+      Xu là <b>xu ảo</b>, chỉ máy chủ và admin ghi được — trình duyệt của bạn không tự cộng/trừ được.
+      Mọi biến động thành một dòng <b>bút toán</b> trong tab Ví:
+      <div class="note" style="margin-top:6px">admin cấp/trừ · phí mở chu kỳ · chốt thưởng chu kỳ ·
+      đặt cược bài thi · trả thưởng bài thi · tất tay thắng ×2 · tất tay thua.</div>
+      <div class="note" style="margin-top:6px">Cần xu khởi điểm? Nhờ admin cấp.</div>
+    </div>
+
+    <h2>9 · Kẹt ở đâu? — hỏi nhanh đáp gọn</h2>
+    <div class="card" style="font-size:.93rem"><ul style="margin:0 0 0 18px">
+      <li><b>"Chưa đủ mục chín để ra đề"</b> → học thêm lúc đã đăng nhập, rồi chờ đủ ${eligH} giờ.</li>
+      <li><b>"Chưa mở chu kỳ / chu kỳ hết hạn"</b> → vào Ví: mở chu kỳ mới, hoặc Chốt chu kỳ cũ trước.</li>
+      <li><b>"Không cược được"</b> → thiếu xu, hoặc hôm nay đã chạm trần thắng +${winCap} xu — mai cược tiếp, thi tự do vẫn mở.</li>
+      <li><b>"Lỡ thoát giữa bài thi"</b> → quay lại tab Thi thật ngay: còn hạn thì làm tiếp; quá hạn thì bài tự chốt (câu trống = sai, mất cược).</li>
+      <li><b>"Nghe phát âm ở đâu"</b> → nút 🔊 cạnh từ và cạnh câu ví dụ — có ở phần Học lẫn màn kết quả thi.</li>
+    </ul></div>
+    <p class="note center"><a href="#home">← Về trang chủ</a></p>`;
 }
 
 /* ── Auth ───────────────────────────────────────────────────────────── */
