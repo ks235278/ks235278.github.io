@@ -37,8 +37,24 @@ def _align_parts(word, reading):
     if m:
         return "".join(f"<ruby>{s}<rt>{m.group(f'k{i}')}</rt></ruby>" if isk else s
                        for i, (s, isk) in enumerate(parts))
-    if sum(1 for _, isk in parts if isk) == 1:  # reading chỉ là của lõi kanji duy nhất
-        return "".join(f"<ruby>{s}<rt>{reading}</rt></ruby>" if isk else s for s, isk in parts)
+    kruns = [i for i, (_, isk) in enumerate(parts) if isk]
+    if len(kruns) == 1:
+        # reading chỉ chú cho lõi kanji duy nhất — nhưng nhiều khi ôm luôn cả
+        # okurigana theo sau (「歯止めをかける」(はどめ): はど là của 歯止,
+        # め là okurigana). Cắt phần đuôi reading trùng với đầu cụm kana sau.
+        j = kruns[0]
+        pre = "".join(s for s, _ in parts[:j])
+        post = "".join(s for s, _ in parts[j + 1:])
+        core = reading
+        if pre and core.startswith(pre):
+            core = core[len(pre):]
+        rt = core
+        for L in range(min(len(core) - 1, len(post)), 0, -1):
+            if core.endswith(post[:L]):
+                rt = core[:len(core) - L]
+                break
+        if rt:
+            return pre + f"<ruby>{parts[j][0]}<rt>{rt}</rt></ruby>" + post
     return None
 
 
@@ -68,6 +84,19 @@ def ruby_html(word, reading):
         rd = "".join(chr(ord(c) - 0x60) if "ァ" <= c <= "ヶ" else c for c in kata)
         out.append(_align_parts(surf, rd) or f"<ruby>{surf}<rt>{rd}</rt></ruby>")
     return "".join(out)
+
+
+RUBY_RT = re.compile(r"<ruby>(?:.*?)<rt>(.*?)</rt></ruby>", re.S)
+TAG = re.compile(r"<.*?>")
+
+def full_reading(word, reading, wf):
+    """Cách đọc TRỌN CỤM. Chú thích gốc nhiều khi chỉ đọc lõi kanji đầu
+    (「後手に回る」(ごて)) — suy ngược từ wf để r luôn khớp furigana hiển thị."""
+    if not HAS_KANJI.search(word):
+        return word
+    if wf:
+        return TAG.sub("", RUBY_RT.sub(lambda m: m.group(1), wf))
+    return reading
 
 
 def fnv1a64(s: str) -> str:
@@ -127,10 +156,12 @@ def main():
             ex = BLANK_RE.sub(fill, ex)
 
         wf = ruby_html(word, reading)
+        # id giữ nguyên theo key gốc (word|reading chú thích) — KHÔNG đổi khi
+        # mở rộng r, để tiến độ học & servedIds & tên file audio không vỡ.
         items.append({
             "id": "t_" + fnv1a64(key),
             "w": word,
-            "r": reading,
+            "r": full_reading(word, reading, wf),
             **({"wf": wf} if wf else {}),
             "m": meaning,
             "jp": (it.get("jp") or "").strip(),

@@ -163,24 +163,38 @@ const rubyWord = it => it.wf ? `<span class="jp">${it.wf}</span>`
 
 /* ── Phát âm: MP3 neural tạo sẵn, hỏng thì rơi về giọng máy ─────────── */
 let voiceBox = null;
-function speak(it) {
-  if (!it) return;
+function playOr(src, fallback) {
   try {
     if (!voiceBox) voiceBox = new Audio();
-    voiceBox.src = `audio/${it.id}.mp3`;
-    voiceBox.play().catch(() => speakTTS(it));
-  } catch (e) { speakTTS(it); }
+    voiceBox.src = src;
+    voiceBox.play().catch(fallback);
+  } catch (e) { fallback(); }
 }
-function speakTTS(it) {
+function speak(it) {
+  if (it) playOr(`audio/${it.id}.mp3`, () => speakTTS(it.r || it.w));
+}
+// Câu ví dụ: MP3 {id}_ex.mp3; fallback đọc text đã bóc furigana + thẻ HTML.
+function exPlain(it) {
+  const d = document.createElement("div");
+  d.innerHTML = it.ex || "";
+  d.querySelectorAll("rt").forEach(x => x.remove());
+  return d.textContent.replace(/〜/g, "").trim();
+}
+function speakEx(it) {
+  if (it && it.ex) playOr(`audio/${it.id}_ex.mp3`, () => speakTTS(exPlain(it)));
+}
+function speakTTS(text) {
   try {
-    const u = new SpeechSynthesisUtterance(it.r || it.w);
+    const u = new SpeechSynthesisUtterance(text);
     u.lang = "ja-JP"; u.rate = 0.9;
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   } catch (e) {}
 }
 document.addEventListener("click", e => {
-  const el = e.target.closest?.("[data-spk]");
-  if (el && S.byId[el.dataset.spk]) speak(S.byId[el.dataset.spk]);
+  const el = e.target.closest?.("[data-spk],[data-spkex]");
+  if (!el) return;
+  if (el.dataset.spk && S.byId[el.dataset.spk]) speak(S.byId[el.dataset.spk]);
+  else if (el.dataset.spkex && S.byId[el.dataset.spkex]) speakEx(S.byId[el.dataset.spkex]);
 });
 const fmtDate = ts => { const d = ts?.toDate ? ts.toDate() : new Date(ts); return d.toLocaleDateString("vi-VN"); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -345,7 +359,7 @@ function vLearn() {
       $("#pack").innerHTML = `<div class="pack">
         <b>${esc(item.w)}</b>（${esc(item.r)}）<button class="spk" data-spk="${esc(item.id)}" aria-label="phát âm">🔊</button>
         = <b style="color:var(--gold)">${esc(item.m)}</b>
-        ${item.ex ? `<div class="ex jp">${item.ex}</div>` : ""}
+        ${item.ex ? `<div class="ex jp">${item.ex} <button class="spk" data-spkex="${esc(item.id)}" aria-label="đọc câu ví dụ">🔊</button></div>` : ""}
         ${item.exvi ? `<div class="vi">${esc(item.exvi)}</div>` : ""}
         ${item.jp ? `<div class="jpdef">📖 ${esc(item.jp)}</div>` : ""}
         <button class="btn" style="margin-top:14px" id="nextBtn">Tiếp tục</button></div>`;
@@ -395,7 +409,8 @@ function reviewItemHtml(q, ans, correctIdx, golden) {
     ${golden ? "✨" : ""}<span class="${ok?"pos":"neg"}">${ok?"✓":"✗"}</span><br>
     <span class="note">${ok ? esc(q.opts[correctIdx])
       : esc(chosen) + " → đúng: " + esc(q.opts[correctIdx])}</span>
-    ${!ok && it ? `${it.ex ? `<div class="ex jp" style="font-size:1rem;line-height:1.9">${it.ex}</div>` : ""}
+    ${!ok && it ? `${it.ex ? `<div class="ex jp" style="font-size:1rem;line-height:1.9">${it.ex}
+        <button class="spk" data-spkex="${esc(it.id)}" aria-label="đọc câu ví dụ">🔊</button></div>` : ""}
       ${it.exvi ? `<div class="vi note">${esc(it.exvi)}</div>` : ""}` : ""}</div>`;
 }
 function reviewHtml(questions, answers, correct, goldenIdx) {
