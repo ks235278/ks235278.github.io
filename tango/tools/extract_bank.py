@@ -170,6 +170,18 @@ def main():
             "lv": "N1",
         })
 
+    # Merge kho mục TỰ SINH (tools/add_words.py ghi vào data/extra_bank.json)
+    # để re-extract không nuốt mất phần bổ sung.
+    extra_path = HERE / "data" / "extra_bank.json"
+    if extra_path.exists():
+        have_w = {x["w"] for x in items}
+        have_id = {x["id"] for x in items}
+        n0 = len(items)
+        for x in json.loads(extra_path.read_text(encoding="utf-8"))["items"]:
+            if x["w"] not in have_w and x["id"] not in have_id:
+                items.append(x); have_w.add(x["w"]); have_id.add(x["id"])
+        print(f"Merge extra_bank: +{len(items) - n0} mục tự sinh")
+
     bank = {
         "v": 1,
         "generated": datetime.date.today().isoformat(),
