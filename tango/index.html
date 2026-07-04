@@ -181,11 +181,15 @@ function playOr(src, fallback) {
 function speak(it) {
   if (it) playOr(`audio/${it.id}.mp3`, () => speakTTS(it.r || it.w));
 }
-// Câu ví dụ: MP3 {id}_ex.mp3; fallback đọc text đã bóc furigana + thẻ HTML.
+// Câu ví dụ: MP3 {id}_ex.mp3; fallback đọc theo ĐÚNG furigana —
+// thay từng cụm kanji bằng phần rt (kana), khỏi để giọng máy đoán sai cách đọc.
 function exPlain(it) {
   const d = document.createElement("div");
   d.innerHTML = it.ex || "";
-  d.querySelectorAll("rt").forEach(x => x.remove());
+  d.querySelectorAll("ruby").forEach(r => {
+    const rt = r.querySelector("rt");
+    r.replaceWith(rt ? rt.textContent : r.textContent);
+  });
   return d.textContent.replace(/〜/g, "").trim();
 }
 function speakEx(it) {

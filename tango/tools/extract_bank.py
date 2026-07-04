@@ -89,6 +89,28 @@ def ruby_html(word, reading):
 RUBY_RT = re.compile(r"<ruby>(?:.*?)<rt>(.*?)</rt></ruby>", re.S)
 TAG = re.compile(r"<.*?>")
 
+# Nghĩa VI viết lại 2026-07-05 (bỏ ngoặc () khó hiểu trong đáp án) — đè lên
+# nghĩa gốc từ DATA n1-quiz để re-extract không làm quay về bản cũ.
+M_OVERRIDES = {
+    "培う": "vun đắp dần qua thời gian",
+    "唆す": "xúi giục làm điều xấu",
+    "募る": "cảm xúc ngày càng dâng cao, chồng chất",
+    "賜る": "được bề trên ban tặng, cách nói khiêm kính",
+    "醸し出す": "toát ra bầu không khí, phong vị",
+    "顧みる": "ngoảnh nhìn lại quá khứ",
+    "翻す": "lật ngược lời nói, thái độ",
+    "凌ぐ": "chống chọi vượt qua lúc khó khăn",
+    "逼迫": "căng thẳng, eo hẹp về tài chính",
+    "露呈": "phơi bày điểm yếu ra ngoài",
+    "踏襲": "kế thừa nguyên lối cũ",
+    "誘致": "chiêu mời, thu hút đầu tư về",
+    "喚起": "khơi dậy sự chú ý, cảnh tỉnh",
+    "醸成": "nuôi ủ dần thành bầu không khí",
+    "助長": "tiếp tay cho điều xấu nặng thêm",
+    "〜した拍子に": "ngay khoảnh khắc vô tình vừa làm gì đó",
+    "矢面に立つ": "đứng mũi chịu sào hứng chỉ trích",
+}
+
 def full_reading(word, reading, wf):
     """Cách đọc TRỌN CỤM. Chú thích gốc nhiều khi chỉ đọc lõi kanji đầu
     (「後手に回る」(ごて)) — suy ngược từ wf để r luôn khớp furigana hiển thị."""
@@ -141,6 +163,7 @@ def main():
             # có kanji thì suy cách đọc bằng fugashi (tra theo cả từ)
             reading = fugashi_reading(word) if HAS_KANJI.search(word) else word
         meaning = meaning.rstrip(". ").strip()
+        meaning = M_OVERRIDES.get(word, meaning)
         key = f"{word}|{reading}"
         if key in seen:
             skipped += 1
