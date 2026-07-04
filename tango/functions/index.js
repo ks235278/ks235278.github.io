@@ -21,10 +21,12 @@ const DEFAULTS = {
   rewardCapRatio: 0.2,    // trần thang thưởng = 20% phí
   targetItems: 100,       // mục tiêu mục "đã thuộc" / chu kỳ (định đơn giá)
   testSize: 20,           // số câu tối đa / bài thi chính thức
-  dailyLimit: 1,          // số bài thi chính thức / ngày (JST)
   eligibilityMinutes: 3 * 24 * 60, // mục "chín" sau 3 ngày (dev: admin đặt = 3 phút)
   perQuestionSec: 8,
   graceSec: 15,
+  maxStake: 500,          // cược tối đa / bài thi
+  dailyWinCap: 3000,      // trần THẮNG RÒNG từ cược / ngày (JST) — chặn lạm phát xu
+  dblWindowSec: 45,       // cửa sổ quyết định + trả lời kèo tất tay
 };
 const ITEMS = new Map(BANK.items.map((it) => [it.id, it]));
 
@@ -77,6 +79,36 @@ async function getActiveCycle(tx, uid) {
     .where("uid", "==", uid).where("status", "==", "active").limit(1);
   const s = await tx.get(q);
   return s.empty ? null : { ref: s.docs[0].ref, ...s.docs[0].data() };
+}
+/** Mục "chín" của user (kèm due/wrong để ưu tiên ôn — dữ liệu này client ghi được,
+ *  nên chỉ dùng để XẾP THỨ TỰ, không bao giờ dùng để tính tiền trực tiếp). */
+async function getMatureItems(tx, uid, cfg, now) {
+  const cutoff = Timestamp.fromMillis(now - cfg.eligibilityMinutes * 60e3);
+  const snap = await tx.get(
+    db.collection(`tango_userItems/${uid}/items`)
+      .where("learnedAt", "<=", cutoff).limit(300));
+  return snap.docs.filter((d) => ITEMS.has(d.id))
+    .map((d) => ({ id: d.id, due: Number(d.data().due) || 0, wrong: Number(d.data().wrong) || 0 }));
+}
+function buildQuestion(id) {
+  const it = ITEMS.get(id);
+  const pool = shuffle(BANK.items.filter((x) => x.id !== id)).slice(0, 3);
+  const opts = shuffle([it.m, ...pool.map((x) => x.m)]);
+  return { q: { itemId: id, w: it.w, r: it.r, opts }, correct: opts.indexOf(it.m) };
+}
+/** Thang trả cược theo độ chính xác + chuỗi + câu hoàng kim. */
+function payoutMult(right, n, maxStreak, goldenHit) {
+  const acc = n ? right / n : 0;
+  let base = 0;
+  if (right === n && n > 0) base = 3;
+  else if (acc >= 0.9) base = 2;
+  else if (acc >= 0.8) base = 1.5;
+  else if (acc >= 0.7) base = 1.1;
+  else if (acc >= 0.6) base = 0.5;
+  if (base <= 0) return { base: 0, combo: 0, golden: 0, total: 0 };
+  const combo = maxStreak >= 10 ? 0.25 : maxStreak >= 5 ? 0.1 : 0;
+  const golden = goldenHit ? 0.5 : 0;
+  return { base, combo, golden, total: base + combo + golden };
 }
 
 /* ── openCycle: trừ phí, mở chu kỳ 30 ngày ──────────────────────────── */
@@ -143,28 +175,38 @@ async function finalizeExpiredTest(testId) {
     const cRef = db.doc(`tango_cycles/${t.cycleId}`);
     const cSnap = await tx.get(cRef);
     const n = t.questions.length;
+    // Chỉ mục "lần đầu trong chu kỳ" (metered) mới đụng thang thưởng.
+    const nM = Array.isArray(t.meteredIds) ? t.meteredIds.length : n;
     let delta = 0, meterAfter = null;
     if (cSnap.exists && cSnap.data().status === "active") {
       const c = cSnap.data();
       const meter = c.rewardMeter || 0;
-      meterAfter = Math.max(0, meter - n * c.unitMinus);
+      meterAfter = Math.max(0, meter - nM * c.unitMinus);
       delta = meterAfter - meter;
       tx.update(cRef, { rewardMeter: meterAfter });
     }
     tx.update(tRef, {
       status: "graded", expired: true, late: true, answers: [],
       score: { right: 0, wrong: 0, blank: n }, delta, meterAfter,
+      payout: 0, // tiền cược (nếu có) đã trừ lúc vào bàn — bỏ dở là mất
       timeMs: Date.now() - t.servedAt.toMillis(), flagged: false,
       gradedAt: FieldValue.serverTimestamp(),
     });
   });
 }
 
-/* ── startOfficialTest: server chọn đề, đáp án ở lại server ─────────── */
+/* ── startOfficialTest: server chọn đề, đáp án ở lại server ───────────
+ * KHÔNG giới hạn số bài/ngày. Nhận { stake }: đặt cược trừ ví ngay khi vào
+ * bàn (bỏ dở = mất cược). Mục chưa ra đề trong chu kỳ (metered) ăn thang
+ * thưởng; hết mục mới thì ra lại mục cũ — ưu tiên mục quá hạn ôn lâu nhất
+ * (ôn cách quãng), các mục này chỉ ăn/thua tiền cược. */
 exports.startOfficialTest = onCall(async (req) => {
   const auth = reqAuth(req);
   const cfg = await getCfg();
   const now = Date.now();
+  const stake = Math.trunc(Number((req.data || {}).stake)) || 0;
+  if (stake < 0 || stake > cfg.maxStake)
+    throw new HttpsError("invalid-argument", `Mức cược phải từ 0 đến ${cfg.maxStake} xu.`);
 
   // Bài dang dở? Còn hạn → cho làm tiếp; quá hạn → tự chốt (trống = sai).
   const pend = await db.collection("tango_tests")
@@ -172,7 +214,8 @@ exports.startOfficialTest = onCall(async (req) => {
   if (!pend.empty) {
     const d = pend.docs[0], t = d.data();
     if (now - t.servedAt.toMillis() <= t.budgetMs)
-      return { testId: d.id, budgetMs: t.budgetMs, questions: t.questions, resumed: true };
+      return { testId: d.id, budgetMs: t.budgetMs, questions: t.questions,
+               goldenIdx: t.goldenIdx ?? -1, stake: t.stake || 0, resumed: true };
     await finalizeExpiredTest(d.id);
   }
 
@@ -181,52 +224,70 @@ exports.startOfficialTest = onCall(async (req) => {
     if (!cyc) throw new HttpsError("failed-precondition", "Chưa mở chu kỳ thưởng — vào Ví để mở.");
     if (cyc.endAt.toMillis() <= now)
       throw new HttpsError("failed-precondition", "Chu kỳ đã hết hạn — vào Ví để Chốt chu kỳ.");
+
+    const wSnap = await tx.get(db.doc(`tango_wallets/${auth.uid}`));
+    const w = wSnap.exists ? wSnap.data() : {};
     const today = jstDay(now);
-    const takenToday = cyc.lastTestDay === today ? (cyc.lastTestCount || 0) : 0;
-    if (takenToday >= cfg.dailyLimit)
-      throw new HttpsError("resource-exhausted", "Hôm nay bạn đã dùng hết lượt thi. Mai thi tiếp nhé.");
+    if (stake > 0) {
+      if ((w.balance || 0) < stake)
+        throw new HttpsError("failed-precondition", `Không đủ xu để cược (đang có ${w.balance || 0}).`);
+      const gNet = w.gDay === today ? (w.gNet || 0) : 0;
+      if (gNet >= cfg.dailyWinCap)
+        throw new HttpsError("resource-exhausted",
+          `Bàn cược hôm nay đã đóng — bạn thắng ròng +${gNet} xu (trần +${cfg.dailyWinCap}/ngày JST). ` +
+          `Thi tự do (cược 0) vẫn không giới hạn.`);
+    }
 
-    // Mục đủ điều kiện: học lần đầu cách đây >= eligibilityMinutes, chưa ra đề trong chu kỳ.
-    const cutoff = Timestamp.fromMillis(now - cfg.eligibilityMinutes * 60e3);
-    const itemsSnap = await tx.get(
-      db.collection(`tango_userItems/${auth.uid}/items`)
-        .where("learnedAt", "<=", cutoff).limit(300));
-    const served = new Set(cyc.servedIds || []);
-    const eligible = itemsSnap.docs.map((d) => d.id)
-      .filter((id) => !served.has(id) && ITEMS.has(id));
-    if (eligible.length < 4)
+    const mature = await getMatureItems(tx, auth.uid, cfg, now);
+    if (mature.length < 4)
       throw new HttpsError("failed-precondition",
-        `Chưa đủ mục "chín" để ra đề (cần ≥ 4, hiện có ${eligible.length}). ` +
+        `Chưa đủ mục "chín" để ra đề (cần ≥ 4, hiện có ${mature.length}). ` +
         `Mục chín sau ${Math.round(cfg.eligibilityMinutes / 60)} giờ kể từ lần học đúng đầu tiên, và phải học khi đã đăng nhập.`);
+    const served = new Set(cyc.servedIds || []);
+    const fresh = [], rep = [];
+    for (const m of mature) (served.has(m.id) ? rep : fresh).push(m);
+    const meteredIds = shuffle(fresh).slice(0, cfg.testSize).map((m) => m.id);
+    let pickIds = [...meteredIds];
+    if (pickIds.length < cfg.testSize) {
+      const byOverdue = shuffle(rep).sort((a, b) => a.due - b.due);
+      pickIds = pickIds.concat(
+        byOverdue.slice(0, cfg.testSize - pickIds.length).map((m) => m.id));
+    }
+    shuffle(pickIds);
 
-    const pickIds = shuffle(eligible).slice(0, cfg.testSize);
     const questions = [], correct = [];
     for (const id of pickIds) {
-      const it = ITEMS.get(id);
-      const pool = shuffle(BANK.items.filter((x) => x.id !== id)).slice(0, 3);
-      const opts = shuffle([it.m, ...pool.map((x) => x.m)]);
-      questions.push({ itemId: id, w: it.w, r: it.r, opts });
-      correct.push(opts.indexOf(it.m));
+      const b = buildQuestion(id);
+      questions.push(b.q); correct.push(b.correct);
     }
+    const goldenIdx = Math.floor(Math.random() * questions.length);
     const budgetMs = questions.length * cfg.perQuestionSec * 1000 + cfg.graceSec * 1000;
     const tRef = db.collection("tango_tests").doc();
+    if (stake > 0)
+      ledgerWrite(tx, auth.uid, wSnap, {
+        type: "test_stake", amount: -stake, refId: tRef.id,
+        reason: "đặt cược bài thi", email: auth.token.email || null,
+      });
     tx.set(tRef, {
       uid: auth.uid, cycleId: cyc.ref.id, status: "served",
       servedAt: Timestamp.fromMillis(now), budgetMs, questions,
+      stake, goldenIdx, meteredIds,
     });
     tx.set(db.doc(`tango_answers/${tRef.id}`), { uid: auth.uid, correct });
     tx.update(cyc.ref, {
-      servedIds: FieldValue.arrayUnion(...pickIds),
-      lastTestDay: today, lastTestCount: takenToday + 1,
+      ...(meteredIds.length ? { servedIds: FieldValue.arrayUnion(...meteredIds) } : {}),
       testsTaken: (cyc.testsTaken || 0) + 1,
     });
-    return { testId: tRef.id, budgetMs, questions };
+    return { testId: tRef.id, budgetMs, questions, goldenIdx, stake };
   });
 });
 
-/* ── submitOfficialTest: chấm 1 lần duy nhất, trong transaction ─────── */
+/* ── submitOfficialTest: chấm 1 lần duy nhất, trong transaction ───────
+ * Trả cược theo thang ×, cộng chuỗi 🔥 + câu hoàng kim ✨, kẹp trần thắng
+ * ròng/ngày, và (nếu thắng) mở kèo TẤT TAY nhân đôi. */
 exports.submitOfficialTest = onCall(async (req) => {
   const auth = reqAuth(req);
+  const cfg = await getCfg();
   const { testId } = req.data || {};
   if (typeof testId !== "string" || !testId)
     throw new HttpsError("invalid-argument", "Thiếu testId.");
@@ -235,7 +296,8 @@ exports.submitOfficialTest = onCall(async (req) => {
 
   return db.runTransaction(async (tx) => {
     const tRef = db.doc(`tango_tests/${testId}`);
-    const [tSnap, aSnap] = await Promise.all([tx.get(tRef), tx.get(db.doc(`tango_answers/${testId}`))]);
+    const aRef = db.doc(`tango_answers/${testId}`);
+    const [tSnap, aSnap] = await Promise.all([tx.get(tRef), tx.get(aRef)]);
     if (!tSnap.exists || tSnap.data().uid !== auth.uid)
       throw new HttpsError("not-found", "Không tìm thấy bài thi.");
     const t = tSnap.data();
@@ -253,28 +315,156 @@ exports.submitOfficialTest = onCall(async (req) => {
         });
     let right = 0, wrong = 0, blank = 0;
     answers.forEach((a, i) => { if (a < 0) blank++; else if (a === correct[i]) right++; else wrong++; });
+    // Chuỗi đúng dài nhất (theo thứ tự làm bài).
+    let maxStreak = 0, streak = 0;
+    answers.forEach((a, i) => {
+      if (a >= 0 && a === correct[i]) { streak++; if (streak > maxStreak) maxStreak = streak; }
+      else streak = 0;
+    });
 
+    // Thang thưởng chu kỳ: CHỈ mục ra đề lần đầu trong chu kỳ (metered) được tính.
+    const meteredSet = new Set(Array.isArray(t.meteredIds)
+      ? t.meteredIds : t.questions.map((q) => q.itemId));
+    let rightM = 0, badM = 0;
+    answers.forEach((a, i) => {
+      if (!meteredSet.has(t.questions[i].itemId)) return;
+      if (a >= 0 && a === correct[i]) rightM++; else badM++;
+    });
     const cRef = db.doc(`tango_cycles/${t.cycleId}`);
     const cSnap = await tx.get(cRef);
+    const wRef = db.doc(`tango_wallets/${auth.uid}`);
+    const wSnap = await tx.get(wRef);
+
+    // Tiền cược → trả thưởng.
+    const stakeAmt = t.stake || 0;
+    const goldenIdx = Number.isInteger(t.goldenIdx) ? t.goldenIdx : -1;
+    const goldenHit = goldenIdx >= 0 && answers[goldenIdx] === correct[goldenIdx];
+    const w = wSnap.exists ? wSnap.data() : {};
+    const today = jstDay(now);
+    let gNet = w.gDay === today ? (w.gNet || 0) : 0;
+    let mult = { base: 0, combo: 0, golden: 0, total: 0 }, payout = 0, capped = false;
+    if (stakeAmt > 0 && !late) {
+      mult = payoutMult(right, n, maxStreak, goldenHit);
+      payout = Math.round(stakeAmt * mult.total);
+      const netWin = payout - stakeAmt;
+      if (netWin > 0 && gNet + netWin > cfg.dailyWinCap) {
+        payout = stakeAmt + Math.max(0, cfg.dailyWinCap - gNet);
+        capped = true;
+      }
+    }
+
+    // Kèo TẤT TAY: chỉ khi có tiền thắng để đặt. Chọn từ khó nhất (nhiều lần
+    // sai nhất) ngoài đề vừa thi — cú gọi hồi trí nhớ đắt giá nhất.
+    let dbl = null, dblCorrect = -1;
+    if (stakeAmt > 0 && !late && payout > 0) {
+      const mature = await getMatureItems(tx, auth.uid, cfg, now);
+      const inTest = new Set(t.questions.map((q) => q.itemId));
+      const cand = mature.filter((m) => !inTest.has(m.id))
+        .sort((a, b) => b.wrong - a.wrong).slice(0, 5);
+      if (cand.length) {
+        const b = buildQuestion(cand[Math.floor(Math.random() * cand.length)].id);
+        dbl = { q: b.q, amount: payout, status: "offered",
+                expiresAt: Timestamp.fromMillis(now + cfg.dblWindowSec * 1000) };
+        dblCorrect = b.correct;
+      }
+    }
+
+    // ── Ghi (mọi read đã xong) ──
     let delta = 0, meter = 0, cap = 0;
     if (cSnap.exists && cSnap.data().status === "active") {
       const c = cSnap.data();
       cap = c.cap;
       const cur = c.rewardMeter || 0;
-      meter = Math.min(cap, Math.max(0, cur + right * c.unitPlus - (wrong + blank) * c.unitMinus));
+      meter = Math.min(cap, Math.max(0, cur + rightM * c.unitPlus - badM * c.unitMinus));
       delta = meter - cur;
       tx.update(cRef, { rewardMeter: meter });
     }
+    if (payout > 0)
+      ledgerWrite(tx, auth.uid, wSnap, {
+        type: "test_payout", amount: payout, refId: testId,
+        reason: `trả cược ×${mult.total.toFixed(2)}${capped ? " (kẹp trần ngày)" : ""}`,
+        email: auth.token.email || null,
+      });
+    if (stakeAmt > 0) {
+      gNet += payout - stakeAmt;
+      tx.set(wRef, { gDay: today, gNet }, { merge: true });
+    }
+    if (dbl) tx.set(aRef, { dblCorrect }, { merge: true });
     // Gắn cờ nghi vấn: trung bình dưới 1.5 giây/câu mà không muộn.
     const flagged = !late && timeMs < n * 1500;
     tx.update(tRef, {
       status: "graded", submittedAt: FieldValue.serverTimestamp(),
       answers, score: { right, wrong, blank }, delta, meterAfter: meter,
+      payout, mult, maxStreak, goldenHit, capped,
+      ...(dbl ? { dbl } : {}),
       timeMs, late, flagged,
       flagReason: flagged ? `${(timeMs / 1000).toFixed(1)}s cho ${n} câu` : null,
       gradedAt: FieldValue.serverTimestamp(),
     });
-    return { right, wrong, blank, delta, meter, cap, late, correct };
+    return { right, wrong, blank, delta, meter, cap, late, correct,
+             stake: stakeAmt, payout, mult, maxStreak, goldenIdx, goldenHit,
+             capped, gNet, winCap: cfg.dailyWinCap,
+             dbl: dbl ? { q: dbl.q, amount: dbl.amount, windowSec: cfg.dblWindowSec } : null };
+  });
+});
+
+/* ── resolveDouble: kèo TẤT TAY — đúng ×2 tiền thắng, sai về 0 ──────── */
+exports.resolveDouble = onCall(async (req) => {
+  const auth = reqAuth(req);
+  const cfg = await getCfg();
+  const { testId } = req.data || {};
+  if (typeof testId !== "string" || !testId)
+    throw new HttpsError("invalid-argument", "Thiếu testId.");
+  const ans = Math.trunc(Number((req.data || {}).answer));
+  const now = Date.now();
+
+  return db.runTransaction(async (tx) => {
+    const tRef = db.doc(`tango_tests/${testId}`);
+    const wRef = db.doc(`tango_wallets/${auth.uid}`);
+    const [tSnap, aSnap, wSnap] = await Promise.all([
+      tx.get(tRef), tx.get(db.doc(`tango_answers/${testId}`)), tx.get(wRef)]);
+    if (!tSnap.exists || tSnap.data().uid !== auth.uid)
+      throw new HttpsError("not-found", "Không tìm thấy bài thi.");
+    const t = tSnap.data();
+    if (!t.dbl || t.dbl.status !== "offered")
+      throw new HttpsError("failed-precondition", "Không có kèo tất tay đang mở cho bài này.");
+    if (now > t.dbl.expiresAt.toMillis()) {
+      tx.update(tRef, { "dbl.status": "expired" });
+      return { expired: true };
+    }
+    const amount = t.dbl.amount || 0;
+    const correctIdx = aSnap.exists && Number.isInteger(aSnap.data().dblCorrect)
+      ? aSnap.data().dblCorrect : -1;
+    const win = Number.isInteger(ans) && ans >= 0 && ans === correctIdx;
+    const w = wSnap.exists ? wSnap.data() : {};
+    const today = jstDay(now);
+    let gNet = w.gDay === today ? (w.gNet || 0) : 0;
+    let delta = 0;
+    if (win) {
+      delta = amount;
+      if (gNet + delta > cfg.dailyWinCap) delta = Math.max(0, cfg.dailyWinCap - gNet);
+      if (delta > 0)
+        ledgerWrite(tx, auth.uid, wSnap, {
+          type: "double_win", amount: delta, refId: testId,
+          reason: "tất tay thắng — nhân đôi tiền thắng", email: auth.token.email || null,
+        });
+    } else {
+      delta = -Math.min(amount, w.balance || 0);
+      if (delta < 0)
+        ledgerWrite(tx, auth.uid, wSnap, {
+          type: "double_loss", amount: delta, refId: testId,
+          reason: "tất tay thua — mất tiền thắng", email: auth.token.email || null,
+        });
+    }
+    gNet += delta;
+    tx.set(wRef, { gDay: today, gNet }, { merge: true });
+    tx.update(tRef, {
+      "dbl.status": win ? "won" : "lost",
+      "dbl.answer": Number.isInteger(ans) ? ans : -1,
+      "dbl.delta": delta,
+      "dbl.resolvedAt": FieldValue.serverTimestamp(),
+    });
+    return { win, delta, correctIdx, capped: win && delta < amount };
   });
 });
 

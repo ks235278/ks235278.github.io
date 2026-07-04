@@ -81,6 +81,24 @@ label{font-size:.8rem;color:var(--muted);display:block;margin:10px 0 4px}
 .stat span{display:block;font-size:.75rem;color:var(--muted)}
 .review{font-size:.9rem}
 .review .it{padding:8px 0;border-bottom:1px solid var(--line)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.chip{background:var(--card2);border:1px solid var(--line);color:var(--cream);
+  border-radius:999px;padding:8px 16px;font-weight:700;font-size:.9rem}
+.chip.on{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+.chip:disabled{opacity:.35;cursor:default}
+.golden{border-color:var(--gold)!important;animation:glow 1.1s ease-in-out infinite alternate}
+@keyframes glow{from{box-shadow:0 0 6px rgba(216,164,58,.25)}to{box-shadow:0 0 22px rgba(216,164,58,.6)}}
+.gband{text-align:center;color:var(--gold);font-weight:700;font-size:.82rem;
+  letter-spacing:.08em;margin-bottom:6px}
+.flame{font-weight:700;color:var(--gold)}
+.paytbl{width:100%;font-size:.83rem;border-collapse:collapse;margin-top:8px}
+.paytbl td{padding:3px 4px;border-bottom:1px dashed var(--line)}
+.paytbl td:last-child{text-align:right;font-weight:600}
+.dbl{background:linear-gradient(160deg,#2c1c0e,#211d15);border:1px solid var(--gold)}
+.btnRed{background:var(--red);color:#fff;width:100%;border-radius:10px}
+.pop{animation:pop .25s ease}
+@keyframes pop{0%{transform:scale(.72);opacity:0}100%{transform:scale(1);opacity:1}}
+.cnt{font-variant-numeric:tabular-nums}
 footer{text-align:center;color:#7c745f;font-size:.75rem;padding:20px}
 </style>
 </head>
@@ -132,7 +150,8 @@ const saveProg = () => localStorage.setItem(PKEY, JSON.stringify(prog));
 // hộp SRS: due sau khi trả lời đúng ở hộp i
 const INTERVALS = [0, 10*60e3, 24*3600e3, 3*24*3600e3, 7*24*3600e3, 14*24*3600e3];
 const CFG_DEFAULT = { cycleDays:30, cycleFee:1000, rewardCapRatio:0.2, targetItems:100,
-                      testSize:20, dailyLimit:1, eligibilityMinutes:3*24*60, perQuestionSec:8 };
+                      testSize:20, eligibilityMinutes:3*24*60, perQuestionSec:8,
+                      maxStake:500, dailyWinCap:3000, dblWindowSec:45 };
 
 const $ = sel => document.querySelector(sel);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -164,6 +183,32 @@ document.addEventListener("click", e => {
   if (el && S.byId[el.dataset.spk]) speak(S.byId[el.dataset.spk]);
 });
 const fmtDate = ts => { const d = ts?.toDate ? ts.toDate() : new Date(ts); return d.toLocaleDateString("vi-VN"); };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const jstToday = () => new Date(Date.now() + 9*3600e3).toISOString().slice(0, 10);
+
+/* ── Âm thanh sòng bài: synth WebAudio tí hon, không cần file ───────── */
+let AC = null;
+function snd(seq) {
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === "suspended") AC.resume();
+    const t0 = AC.currentTime;
+    for (const [f, st, d, type] of seq) {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = type || "triangle"; o.frequency.value = f;
+      g.gain.setValueAtTime(0.001, t0 + st);
+      g.gain.exponentialRampToValueAtTime(0.1, t0 + st + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + st + d);
+      o.connect(g).connect(AC.destination);
+      o.start(t0 + st); o.stop(t0 + st + d + 0.05);
+    }
+  } catch (e) {}
+}
+const sGood = () => snd([[1240, 0, .07]]);
+const sBad  = () => snd([[170, 0, .13, "sawtooth"]]);
+const sCoin = () => snd([[1568, 0, .05], [2093, .05, .08]]);
+const sWin  = () => snd([[880, 0, .1], [1109, .09, .1], [1319, .18, .16], [1760, .3, .3]]);
+const sLose = () => snd([[311, 0, .16, "sawtooth"], [233, .15, .18, "sawtooth"], [155, .32, .32, "sawtooth"]]);
 const errMsg = e => (e?.message || String(e)).replace(/^Firebase: */, "").replace(/ \(functions\/[a-z-]+\)\.?$/, "")
   || "Có lỗi xảy ra.";
 const isAdmin = () => S.user && S.user.email === ADMIN_EMAIL;
@@ -242,7 +287,7 @@ function vHome() {
       <div><b>Thi thử</b><div class="note">Giống thi thật, 8 giây/câu — không dính xu</div></div><span class="tag dim">tự do</span>
     </div></div>
     <div class="card click" onclick="location.hash='test'"><div class="row">
-      <div><b>Thi chính thức</b><div class="note">Chấm trên máy chủ, xu nhảy theo kết quả</div></div><span class="tag">xu</span>
+      <div><b>Thi chính thức 🎰</b><div class="note">Không giới hạn số bài · đặt cược xu, chuỗi 🔥, Câu Hoàng Kim ✨, kèo Tất Tay ×2</div></div><span class="tag">xu</span>
     </div></div>
     ${S.user ? "" : `<button class="btn" id="loginBtn">Đăng nhập bằng Google</button>
       <p class="note center" style="margin-top:8px">Học không cần đăng nhập. Đăng nhập để tiến độ được tính vào điều kiện thi thật.</p>`}
@@ -321,10 +366,12 @@ function runTest(questions, opts) {
   const step = () => {
     if (i >= questions.length) return finish();
     const q = questions[i];
+    const golden = opts.goldenIdx === i;
     $("#view").innerHTML = `
-      <p class="note">${esc(opts.title)} · câu ${i+1}/${questions.length}</p>
+      <p class="note">${esc(opts.title)} · câu ${i+1}/${questions.length}${opts.stake ? ` · 🎲 cược ${opts.stake} xu` : ""}</p>
       <div class="timer"><i id="tbar" style="width:100%"></i></div>
-      <div class="card">
+      <div class="card${golden ? " golden" : ""}">
+        ${golden ? `<div class="gband">✨ CÂU HOÀNG KIM — trúng là +50% cược ✨</div>` : ""}
         <div class="word">${rubyWord(S.byId[q.itemId] || q)}</div>
         <p class="ask">Nghĩa tiếng Việt của từ này?</p>
         <div class="opts">${q.opts.map((o,k)=>`<button class="opt" data-k="${k}">${esc(o)}</button>`).join("")}</div>
@@ -338,16 +385,22 @@ function runTest(questions, opts) {
   };
   step();
 }
-function reviewHtml(questions, answers, correct) {
-  return `<div class="review">` + questions.map((q,i) => {
-    const ok = answers[i] === correct[i];
-    const chosen = answers[i] >= 0 ? q.opts[answers[i]] : "(bỏ trống)";
-    return `<div class="it"><b class="jp">${esc(q.w)}</b>（${esc(q.r)}）
-      <button class="spk" data-spk="${esc(q.itemId)}" aria-label="phát âm">🔊</button>
-      <span class="${ok?"pos":"neg"}">${ok?"✓":"✗"}</span><br>
-      <span class="note">${ok ? esc(q.opts[correct[i]])
-        : esc(chosen) + " → đúng: " + esc(q.opts[correct[i]])}</span></div>`;
-  }).join("") + `</div>`;
+// Câu sai kèm luôn gói ghi nhớ (ví dụ + dịch) — sai ở đâu, khắc sâu ở đó.
+function reviewItemHtml(q, ans, correctIdx, golden) {
+  const ok = ans === correctIdx;
+  const it = S.byId[q.itemId];
+  const chosen = ans >= 0 ? q.opts[ans] : "(bỏ trống)";
+  return `<div class="it"><b class="jp">${esc(q.w)}</b>（${esc(q.r)}）
+    <button class="spk" data-spk="${esc(q.itemId)}" aria-label="phát âm">🔊</button>
+    ${golden ? "✨" : ""}<span class="${ok?"pos":"neg"}">${ok?"✓":"✗"}</span><br>
+    <span class="note">${ok ? esc(q.opts[correctIdx])
+      : esc(chosen) + " → đúng: " + esc(q.opts[correctIdx])}</span>
+    ${!ok && it ? `${it.ex ? `<div class="ex jp" style="font-size:1rem;line-height:1.9">${it.ex}</div>` : ""}
+      ${it.exvi ? `<div class="vi note">${esc(it.exvi)}</div>` : ""}` : ""}</div>`;
+}
+function reviewHtml(questions, answers, correct, goldenIdx) {
+  return `<div class="review">` + questions.map((q,i) =>
+    reviewItemHtml(q, answers[i], correct[i], goldenIdx === i)).join("") + `</div>`;
 }
 
 /* ── Thi thử ────────────────────────────────────────────────────────── */
@@ -368,74 +421,235 @@ function vMock() {
     const items = shuffle([...pool]).slice(0, n);
     const qs = items.map(it => { const { opts, correct } = makeOpts(it); return { itemId:it.id, w:it.w, r:it.r, opts, correct }; });
     runTest(qs, { title:"Thi thử", routeName:"mock", onDone: answers => {
-      let right = 0; qs.forEach((q,i) => { if (answers[i] === q.correct) right++; });
+      let right = 0;
+      qs.forEach((q,i) => {
+        const ok = answers[i] === q.correct;
+        if (ok) right++;
+        // thi thử cũng là ôn: đúng thăng hộp SRS, sai tụt hộp → quay lại phần Học sớm
+        const it = S.byId[q.itemId]; if (it) recordLearn(it, ok);
+      });
       $("#view").innerHTML = `<h1>Kết quả thi thử</h1>
-        <div class="card center"><p class="big">${right}/${qs.length}</p><p class="note">câu đúng</p></div>
+        <div class="card center"><p class="big">${right}/${qs.length}</p><p class="note">câu đúng — đã nạp vào lịch ôn</p></div>
         <div class="card">${reviewHtml(qs, answers, qs.map(q=>q.correct))}</div>
         <button class="btn2" onclick="location.hash='';location.hash='mock'">Thi thử lại</button>`;
     }});
   });
 }
 
-/* ── Thi chính thức ─────────────────────────────────────────────────── */
+/* ── Thi chính thức: KHÔNG giới hạn số bài — bàn cược xu ────────────── */
 async function vOfficial() {
   if (!S.user) { $("#view").innerHTML = `<h1>Thi chính thức</h1>
     <div class="card center"><p>Cần đăng nhập để thi thật.</p>
     <button class="btn" style="margin-top:12px" id="loginBtn">Đăng nhập bằng Google</button></div>`;
     $("#loginBtn").addEventListener("click", login); return; }
   $("#view").innerHTML = `<h1>Thi chính thức</h1><p class="note">Đang kiểm tra chu kỳ…</p>`;
-  let cyc = null;
+  let cyc = null, bal = 0, wal = {};
   try {
-    const qs = await getDocs(query(collection(db,"tango_cycles"),
-      where("uid","==",S.user.uid), where("status","==","active"), limit(1)));
+    const [qs, ws] = await Promise.all([
+      getDocs(query(collection(db,"tango_cycles"),
+        where("uid","==",S.user.uid), where("status","==","active"), limit(1))),
+      getDoc(doc(db, "tango_wallets", S.user.uid)),
+    ]);
     cyc = qs.empty ? null : { id: qs.docs[0].id, ...qs.docs[0].data() };
+    wal = ws.exists() ? ws.data() : {};
+    bal = wal.balance || 0;
   } catch (e) { $("#view").innerHTML = `<h1>Thi chính thức</h1><p class="err">${esc(errMsg(e))}</p>`; return; }
   if (!cyc) { $("#view").innerHTML = `<h1>Thi chính thức</h1>
     <div class="card"><p>Bạn chưa có chu kỳ thưởng đang chạy.</p>
     <p class="note" style="margin:8px 0 14px">Vào Ví để mở chu kỳ (trừ phí ảo từ ví, thang thưởng tối đa +20% phí). Chưa có xu? Admin cấp.</p>
     <button class="btn" onclick="location.hash='wallet'">Mở Ví</button></div>`; return; }
   const st = homeStats();
+  const maxStake = S.cfg?.maxStake ?? 500;
+  const winCap = S.cfg?.dailyWinCap ?? 3000;
+  const gNet = wal.gDay === jstToday() ? (wal.gNet || 0) : 0;
+  const tableClosed = gNet >= winCap;
+  const tiers = [...new Set([0, 50, 100, 200, maxStake].filter(v => v <= maxStake))];
   $("#view").innerHTML = `
-    <h1>Thi chính thức</h1>
+    <h1>Thi chính thức 🎰</h1>
     <div class="card">
-      <div class="row"><b>Luật của bài thi</b><span class="tag">chu kỳ đến ${fmtDate(cyc.endAt)}</span></div>
+      <div class="row"><b>Luật bàn thi</b><span class="tag">chu kỳ đến ${fmtDate(cyc.endAt)}</span></div>
       <ul style="margin:10px 0 0 18px;font-size:.92rem">
-        <li>Máy chủ chọn tối đa ${S.cfg?.testSize ?? 20} mục "chín" (học cách đây ≥ ${Math.round((S.cfg?.eligibilityMinutes ?? 4320)/60)} giờ).</li>
-        <li>${S.cfg?.perQuestionSec ?? 8} giây mỗi câu — hết giờ tính bỏ trống, bỏ trống tính sai.</li>
-        <li>Đúng <b class="pos">+${cyc.unitPlus} xu</b> · sai <b class="neg">−${cyc.unitMinus} xu</b> vào thang thưởng (kẹp 0 → ${cyc.cap} xu).</li>
-        <li>Mỗi mục chỉ được tính 1 lần trong chu kỳ. ${S.cfg?.dailyLimit ?? 1} bài mỗi ngày.</li>
-        <li>Thoát giữa chừng không hủy được bài — hệ thống tự chốt phần còn lại là sai.</li>
+        <li><b>Không giới hạn số bài</b> — thi bao nhiêu tuỳ sức nhớ.</li>
+        <li>Tối đa ${S.cfg?.testSize ?? 20} câu: ưu tiên mục "chín" mới; hết mục mới thì ra lại mục <b>quá hạn ôn lâu nhất</b> (ôn cách quãng trá hình).</li>
+        <li>${S.cfg?.perQuestionSec ?? 8} giây mỗi câu — hết giờ = bỏ trống = sai.</li>
+        <li>Thang thưởng chu kỳ: đúng <b class="pos">+${cyc.unitPlus}</b> · sai <b class="neg">−${cyc.unitMinus}</b> xu, kẹp 0 → ${cyc.cap} — <b>chỉ mục ra đề lần đầu trong chu kỳ</b> được tính. Mục thi lại chỉ ăn/thua tiền cược.</li>
+        <li>Bỏ dở bài = phần còn lại tính sai <b>và mất luôn tiền cược</b>.</li>
       </ul>
       <p class="note" style="margin-top:8px">Bạn đang có ~${st.ripe} mục chín (ước tính trên máy này).</p>
-      <button class="btn" style="margin-top:14px" id="offGo">Vào thi</button>
-      <div id="offErr"></div>
-    </div>`;
+    </div>
+    <div class="card">
+      <div class="row"><b>🎲 Bàn cược</b><span class="tag">${bal} xu trong ví</span></div>
+      ${tableClosed
+        ? `<p class="note" style="margin-top:8px">🔒 Bàn cược đóng đến 0h (JST) — hôm nay bạn đã thắng ròng +${gNet} xu (trần +${winCap}). Thi tự do vẫn mở vô hạn.</p>`
+        : `<div class="chips">${tiers.map(v => `<button class="chip${v===0?" on":""}" data-s="${v}"
+             ${v > bal ? "disabled" : ""}>${v === 0 ? "Miễn phí" : v + " xu"}</button>`).join("")}</div>
+      <label>Hoặc cược tuỳ ý (tối đa ${Math.min(maxStake, bal)} xu)</label>
+      <input id="stakeIn" type="number" min="0" max="${Math.min(maxStake, bal)}" placeholder="0">
+      <table class="paytbl">
+        <tr><td>💎 Đúng 100%</td><td>×3 JACKPOT</td></tr>
+        <tr><td>Đúng ≥ 90%</td><td>×2</td></tr>
+        <tr><td>Đúng ≥ 80%</td><td>×1.5</td></tr>
+        <tr><td>Đúng ≥ 70%</td><td>×1.1</td></tr>
+        <tr><td>Đúng ≥ 60%</td><td>×0.5</td></tr>
+        <tr><td>Dưới 60%</td><td class="neg">mất sạch cược</td></tr>
+        <tr><td>Chuỗi 🔥 ≥ 5 / ≥ 10</td><td>+10% / +25%</td></tr>
+        <tr><td>Câu Hoàng Kim ✨</td><td>+50%</td></tr>
+        <tr><td>Thắng bài → kèo TẤT TAY</td><td>×2 hay về 0</td></tr>
+      </table>
+      <p class="note" style="margin-top:8px">Thắng ròng hôm nay: <b class="${gNet>=0?"pos":"neg"}">${gNet>=0?"+":""}${gNet}</b> / trần +${winCap} xu·ngày.</p>`}
+    </div>
+    <button class="btn" id="offGo">Vào thi — miễn phí</button>
+    <div id="offErr"></div>`;
+  let stake = 0;
+  const setStake = v => {
+    stake = Math.max(0, Math.min(Math.trunc(v) || 0, maxStake, bal));
+    document.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", +c.dataset.s === stake));
+    $("#offGo").textContent = stake > 0 ? `Vào thi — cược ${stake} xu 🎲` : "Vào thi — miễn phí";
+  };
+  document.querySelectorAll(".chip").forEach(c =>
+    c.addEventListener("click", () => { const el = $("#stakeIn"); if (el) el.value = ""; setStake(+c.dataset.s); }));
+  $("#stakeIn")?.addEventListener("input", e => setStake(+e.target.value));
   $("#offGo").addEventListener("click", async () => {
     $("#offGo").disabled = true; $("#offGo").textContent = "Đang lấy đề từ máy chủ…";
     try {
-      const res = await call("startOfficialTest");
+      const res = await call("startOfficialTest", { stake });
       runTest(res.questions, { title: res.resumed ? "Thi thật (tiếp tục)" : "Thi thật", routeName:"test",
-        perSec: S.cfg?.perQuestionSec ?? 8,
+        perSec: S.cfg?.perQuestionSec ?? 8, goldenIdx: res.goldenIdx, stake: res.stake,
         onDone: async answers => {
           $("#view").innerHTML = `<h1>Đang chấm…</h1><p class="note">Máy chủ đang chấm và ghi sổ.</p>`;
           try {
             const out = await call("submitOfficialTest", { testId: res.testId, answers });
-            $("#view").innerHTML = `<h1>Kết quả</h1>
-              <div class="card center">
-                <p class="big">${out.right} đúng · ${out.wrong + out.blank} sai/trống</p>
-                <p style="margin:6px 0" class="${out.delta >= 0 ? "pos":"neg"}">
-                  <b>${out.delta >= 0 ? "+" : ""}${out.delta} xu</b> vào thang thưởng</p>
-                <div class="meter"><i style="width:${Math.round(out.meter / out.cap * 100)}%"></i></div>
-                <p class="note">thang thưởng: ${out.meter}/${out.cap} xu${out.late ? " · ⚠ nộp quá hạn — toàn bộ tính bỏ trống" : ""}</p>
-              </div>
-              <div class="card">${reviewHtml(res.questions, out.late ? res.questions.map(()=>-1) : answers, out.correct)}</div>
-              <button class="btn2" onclick="location.hash='wallet'">Xem Ví</button>`;
+            await revealOfficial(res, out, answers);
           } catch (e) { $("#view").innerHTML = `<h1>Kết quả</h1><p class="err">${esc(errMsg(e))}</p>`; }
         }});
     } catch (e) {
-      $("#offGo").disabled = false; $("#offGo").textContent = "Vào thi";
+      $("#offGo").disabled = false;
+      $("#offGo").textContent = stake > 0 ? `Vào thi — cược ${stake} xu 🎲` : "Vào thi — miễn phí";
       $("#offErr").innerHTML = `<p class="err">${esc(errMsg(e))}</p>`;
     }
+  });
+}
+
+/* ── Màn "mở bài": lật từng câu như lật bài, rồi kết sổ cược ────────── */
+async function revealOfficial(res, out, answers) {
+  const qs = res.questions;
+  const ans = out.late ? qs.map(() => -1) : answers;
+  // Nạp kết quả thi thật vào SRS: đúng thăng hộp, sai tụt hộp → vòng Học nhặt lại sớm.
+  qs.forEach((q, i) => { const it = S.byId[q.itemId]; if (it) recordLearn(it, ans[i] === out.correct[i]); });
+  $("#view").innerHTML = `
+    <h1>Mở bài 🎴</h1>
+    ${out.late ? `<p class="err">⚠ Nộp quá hạn — toàn bộ tính bỏ trống.</p>` : ""}
+    <div class="card center">
+      <p class="big cnt"><span id="rvScore">0</span>/${qs.length}</p>
+      <p class="note">câu đúng · chuỗi <span class="flame">🔥 <span id="rvStreak">0</span></span> · dài nhất <span id="rvMax">0</span></p>
+    </div>
+    <div class="card"><div class="review" id="rvList"></div></div>
+    <div id="rvPay"></div><div id="rvMeter"></div><div id="rvDbl"></div><div id="rvAct"></div>`;
+  const list = $("#rvList");
+  let right = 0, streak = 0, maxSt = 0;
+  for (let i = 0; i < qs.length; i++) {
+    if (!document.getElementById("rvList")) return; // user đã rời trang
+    const ok = ans[i] === out.correct[i];
+    const div = document.createElement("div");
+    div.className = "pop";
+    div.innerHTML = reviewItemHtml(qs[i], ans[i], out.correct[i], out.goldenIdx === i);
+    list.appendChild(div);
+    if (ok) { right++; streak++; maxSt = Math.max(maxSt, streak); sGood(); }
+    else { streak = 0; sBad(); }
+    $("#rvScore").textContent = right;
+    $("#rvStreak").textContent = streak;
+    $("#rvMax").textContent = maxSt;
+    await sleep(out.late ? 60 : qs.length > 12 ? 170 : 260);
+  }
+  // Kết sổ bàn cược
+  if (out.stake > 0 && document.getElementById("rvPay")) {
+    const m = out.mult || { base:0, combo:0, golden:0, total:0 };
+    const rows = [
+      `Cược: <b>${out.stake} xu</b>`,
+      out.late ? `<span class="neg">Nộp quá hạn — nhà cái nuốt cược.</span>`
+        : `Chính xác ${out.right}/${qs.length} → hệ số <b>×${m.base}</b>${out.right === qs.length ? " 💎 JACKPOT" : ""}`,
+      !out.late && m.combo ? `Chuỗi ${out.maxStreak} 🔥 → <b>+${Math.round(m.combo*100)}%</b>` : null,
+      !out.late && out.goldenIdx >= 0 ? (out.goldenHit ? `Câu Hoàng Kim ✨ → <b>+50%</b>` : `Câu Hoàng Kim ✨ → trượt`) : null,
+      out.capped ? `🔒 Kẹp trần thắng ngày (+${out.winCap} xu) — phần vượt bị cắt` : null,
+    ].filter(Boolean);
+    $("#rvPay").innerHTML = `<div class="card pop"><b>💰 Kết sổ bàn cược</b>
+      <div style="margin:8px 0 4px;font-size:.92rem">${rows.map(r => `<div>${r}</div>`).join("")}</div>
+      <p class="big cnt center" id="rvCoin">0 xu</p>
+      <p class="note center" id="rvNet"></p></div>`;
+    const target = out.payout || 0, el = $("#rvCoin");
+    const stepN = Math.max(1, Math.ceil(target / 22));
+    for (let v = 0; v < target;) {
+      v = Math.min(target, v + stepN);
+      if (!document.getElementById("rvCoin")) return;
+      el.textContent = v + " xu"; sCoin(); await sleep(45);
+    }
+    const net = target - out.stake;
+    if ($("#rvNet")) $("#rvNet").innerHTML =
+      `trả thưởng — lãi/lỗ ván này: <b class="${net >= 0 ? "pos" : "neg"}">${net >= 0 ? "+" : ""}${net} xu</b>
+       · hôm nay ròng ${out.gNet >= 0 ? "+" : ""}${out.gNet}/${out.winCap}`;
+    if (target === 0) sLose(); else if (net > 0) sWin();
+  }
+  if (document.getElementById("rvMeter")) $("#rvMeter").innerHTML = `<div class="card pop">
+    <div class="row"><b>Thang thưởng chu kỳ</b>
+      <span class="${out.delta >= 0 ? "pos" : "neg"}"><b>${out.delta >= 0 ? "+" : ""}${out.delta} xu</b></span></div>
+    <div class="meter"><i style="width:${out.cap ? Math.round(out.meter / out.cap * 100) : 0}%"></i></div>
+    <p class="note">${out.meter}/${out.cap} xu · chỉ mục ra đề lần đầu trong chu kỳ mới nhích thang này</p></div>`;
+  if (out.dbl) await offerDouble(res.testId, out.dbl);
+  if (document.getElementById("rvAct")) $("#rvAct").innerHTML = `
+    <button class="btn" onclick="location.hash='';location.hash='test'">🎰 Thi tiếp — không giới hạn</button>
+    <button class="btn2" style="margin-top:8px" onclick="location.hash='wallet'">Xem Ví</button>`;
+}
+
+/* ── Kèo TẤT TAY: 1 từ khó nhất — nhân đôi tiền thắng hay về 0 ──────── */
+function offerDouble(testId, dbl) {
+  return new Promise(resolve => {
+    const box = document.getElementById("rvDbl");
+    if (!box) return resolve();
+    const total = Math.max(5, (dbl.windowSec || 45) - 5) * 1000; // trừ hao mạng
+    box.innerHTML = `<div class="card dbl pop">
+      <div class="gband">🂠 TẤT TAY — NHÂN ĐÔI HAY VỀ KHÔNG 🂠</div>
+      <p style="font-size:.92rem">Máy chủ rút <b>1 từ khó nhất của bạn</b> (hay sai nhất, ngoài đề vừa thi).
+        Đúng: <b class="pos">+${dbl.amount} xu</b> nữa · Sai: <b class="neg">mất sạch ${dbl.amount} xu vừa thắng</b>.</p>
+      <div class="timer" style="margin:10px 0"><i id="dblT" style="width:100%"></i></div>
+      <div class="grid2">
+        <button class="btnRed" id="dblGo">🔥 TẤT TAY</button>
+        <button class="btn2" id="dblNo">Rút lui giữ xu</button>
+      </div><div id="dblQ"></div></div>`;
+    const bar = $("#dblT");
+    requestAnimationFrame(() => { bar.style.transition = `width ${total}ms linear`; bar.style.width = "0%"; });
+    let done = false;
+    const finish = html => { if (done) return; done = true;
+      if (html != null && document.getElementById("rvDbl")) box.innerHTML = html; resolve(); };
+    const expireT = setTimeout(() =>
+      finish(`<div class="card"><p class="note">⌛ Hết giờ quyết định — bạn giữ chắc ${dbl.amount} xu. Khôn đấy.</p></div>`), total);
+    $("#dblNo").addEventListener("click", () => { clearTimeout(expireT);
+      finish(`<div class="card"><p class="note">Bạn rút lui — ${dbl.amount} xu về ví an toàn.</p></div>`); });
+    $("#dblGo").addEventListener("click", () => {
+      $("#dblGo").disabled = true; $("#dblNo").disabled = true;
+      const q = dbl.q, it = S.byId[q.itemId];
+      $("#dblQ").innerHTML = `
+        <div class="word" style="margin-top:12px">${rubyWord(it || q)}</div>
+        <p class="ask">Nghĩa tiếng Việt? Cả ${dbl.amount} xu nằm trên câu này.</p>
+        <div class="opts">${q.opts.map((o,k) => `<button class="opt" data-k="${k}">${esc(o)}</button>`).join("")}</div>`;
+      document.querySelectorAll("#dblQ .opt").forEach(b => b.addEventListener("click", async () => {
+        if (done) return;
+        clearTimeout(expireT);
+        document.querySelectorAll("#dblQ .opt").forEach(x => x.disabled = true);
+        try {
+          const r = await call("resolveDouble", { testId, answer: +b.dataset.k });
+          if (it && !r.expired) recordLearn(it, !!r.win);
+          if (r.expired)
+            return finish(`<div class="card"><p class="err">⌛ Quá giờ — kèo hết hạn, tiền thắng vẫn giữ nguyên.</p></div>`);
+          if (r.win) { sWin();
+            finish(`<div class="card dbl center pop"><p class="big pos">＋${r.delta} xu 🎉</p>
+              <p class="note">TẤT TAY THẮNG — nhân đôi thành công${r.capped ? " (bị cắt bớt vì trần ngày)" : ""}.</p></div>`);
+          } else { sLose();
+            finish(`<div class="card center pop"><p class="big neg">−${-r.delta} xu 💀</p>
+              <p class="note">Về không. Đáp án đúng: <b>${esc(q.opts[r.correctIdx] ?? "?")}</b> — lần này thì nhớ nhé.</p></div>`);
+          }
+        } catch (e) { finish(`<div class="card"><p class="err">${esc(errMsg(e))}</p></div>`); }
+      }, { once: true }));
+    });
   });
 }
 
@@ -446,23 +660,31 @@ async function vWallet() {
     <button class="btn" style="margin-top:12px" id="loginBtn">Đăng nhập bằng Google</button></div>`;
     $("#loginBtn").addEventListener("click", login); return; }
   $("#view").innerHTML = `<h1>Ví</h1><p class="note">Đang tải…</p>`;
-  let bal = 0, cyc = null, rows = [];
+  let bal = 0, cyc = null, rows = [], wal = {};
   try {
     const [ws, cs, ls] = await Promise.all([
       getDoc(doc(db, "tango_wallets", S.user.uid)),
       getDocs(query(collection(db,"tango_cycles"), where("uid","==",S.user.uid), where("status","==","active"), limit(1))),
       getDocs(query(collection(db,"tango_wallets",S.user.uid,"ledger"), orderBy("seq","desc"), limit(15))),
     ]);
-    bal = ws.exists() ? ws.data().balance : 0;
+    wal = ws.exists() ? ws.data() : {};
+    bal = wal.balance || 0;
     cyc = cs.empty ? null : { id: cs.docs[0].id, ...cs.docs[0].data() };
     rows = ls.docs.map(d => d.data());
   } catch (e) { $("#view").innerHTML = `<h1>Ví</h1><p class="err">${esc(errMsg(e))}</p>`; return; }
   const expired = cyc && cyc.endAt?.toMillis && cyc.endAt.toMillis() <= Date.now();
-  const TYPE_VI = { admin_adjust:"admin cấp/trừ", cycle_fee:"phí mở chu kỳ", cycle_settle:"chốt thưởng chu kỳ" };
+  const TYPE_VI = { admin_adjust:"admin cấp/trừ", cycle_fee:"phí mở chu kỳ", cycle_settle:"chốt thưởng chu kỳ",
+                    test_stake:"đặt cược bài thi", test_payout:"trả thưởng bài thi",
+                    double_win:"tất tay thắng ×2", double_loss:"tất tay thua" };
+  const gNet = wal.gDay === jstToday() ? (wal.gNet || 0) : 0;
+  const winCap = S.cfg?.dailyWinCap ?? 3000;
   $("#view").innerHTML = `
     <h1>Ví</h1>
     <div class="card"><div class="row"><div><b>Số dư</b><div class="note">xu ảo — chỉ máy chủ và admin ghi được</div></div>
-      <span class="big">${bal} xu</span></div></div>
+      <span class="big">${bal} xu</span></div>
+      <p class="note" style="margin-top:8px">🎲 Cược hôm nay (JST): ròng
+        <b class="${gNet>=0?"pos":"neg"}">${gNet>=0?"+":""}${gNet} xu</b> / trần thắng +${winCap}
+        ${gNet >= winCap ? " · 🔒 bàn cược đóng đến 0h" : ""}</p></div>
     ${cyc ? `
     <div class="card">
       <div class="row"><b>Chu kỳ đang chạy</b><span class="tag">${expired ? "đã hết hạn" : "đến " + fmtDate(cyc.endAt)}</span></div>
@@ -516,6 +738,8 @@ async function vAdmin() {
         <div><label>testSize (số câu/bài)</label><input id="cSize" type="number"></div>
         <div><label>cycleFee (phí chu kỳ)</label><input id="cFee" type="number"></div>
         <div><label>cycleDays (số ngày)</label><input id="cDays" type="number"></div>
+        <div><label>maxStake (cược tối đa/bài)</label><input id="cMaxS" type="number"></div>
+        <div><label>dailyWinCap (trần thắng ròng/ngày)</label><input id="cWCap" type="number"></div>
       </div>
       <p class="note" style="margin-top:8px">Dev: đặt eligibilityMinutes = 3 để mục "chín" sau 3 phút.</p>
       <button class="btn2" style="margin-top:10px" id="cSave">Lưu cấu hình</button>
@@ -537,11 +761,13 @@ async function vAdmin() {
     const s = await getDoc(cfgRef); const c = { ...CFG_DEFAULT, ...(s.exists() ? s.data() : {}) };
     $("#cElig").value = c.eligibilityMinutes; $("#cSize").value = c.testSize;
     $("#cFee").value = c.cycleFee; $("#cDays").value = c.cycleDays;
+    $("#cMaxS").value = c.maxStake; $("#cWCap").value = c.dailyWinCap;
   } catch (e) {}
   $("#cSave").addEventListener("click", async () => {
     try {
       await setDoc(cfgRef, { eligibilityMinutes:+$("#cElig").value, testSize:+$("#cSize").value,
-        cycleFee:+$("#cFee").value, cycleDays:+$("#cDays").value }, { merge:true });
+        cycleFee:+$("#cFee").value, cycleDays:+$("#cDays").value,
+        maxStake:+$("#cMaxS").value, dailyWinCap:+$("#cWCap").value }, { merge:true });
       S.cfg = { ...CFG_DEFAULT, ...(await getDoc(cfgRef)).data() };
       $("#cOut").innerHTML = `<p class="ok">Đã lưu.</p>`;
     } catch (e) { $("#cOut").innerHTML = `<p class="err">${esc(errMsg(e))}</p>`; }
