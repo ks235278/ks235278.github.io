@@ -46,7 +46,9 @@ Trang tĩnh đã chạy ngay khi push (GitHub Pages). Phần server làm 1 lần
 ```
 tango/
 ├── index.html          # toàn bộ app (client)
-├── data/bank.json      # 200 mục trích từ DATA n1-quiz (tools/extract_bank.py)
+├── data/bank.json      # 500 mục = 200 trích từ DATA n1-quiz (tools/extract_bank.py)
+│                       #   + 300 tự sinh (tools/add_words.py ← tools/new_words/*.json,
+│                       #   kho lưu data/extra_bank.json — re-extract không mất)
 ├── firestore.rules     # rules HỢP NHẤT cả project (n1-quiz + tango)
 ├── firebase.json       # deploy functions/rules từ thư mục này
 ├── functions/          # vùng tin cậy: openCycle, settleCycle, startOfficialTest,
