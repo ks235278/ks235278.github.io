@@ -24,11 +24,21 @@ a{color:var(--gold)}
 header{position:sticky;top:0;z-index:5;background:rgba(22,20,15,.94);backdrop-filter:blur(4px);
   border-bottom:1px solid var(--line)}
 .hwrap{max-width:640px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
-.brand{font-weight:700;color:var(--gold);text-decoration:none;font-size:1.05rem;white-space:nowrap}
-nav{display:flex;gap:4px;flex:1;overflow-x:auto;scrollbar-width:none}
-nav::-webkit-scrollbar{display:none}
-nav a{color:var(--muted);text-decoration:none;font-size:.86rem;padding:5px 10px;border-radius:999px;white-space:nowrap}
+.brand{font-weight:700;color:var(--gold);text-decoration:none;font-size:1.05rem;white-space:nowrap;margin-right:auto}
+.menuBtn{display:none;background:var(--card2);border:1px solid var(--line);color:var(--cream);
+  border-radius:8px;padding:6px 11px;font-size:1.05rem;line-height:1;width:auto}
+nav{max-width:640px;margin:0 auto;display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 10px}
+nav a{color:var(--muted);text-decoration:none;font-size:.86rem;padding:6px 11px;border-radius:999px;white-space:nowrap}
+nav a:hover{color:var(--cream)}
 nav a.on{color:var(--bg);background:var(--gold);font-weight:600}
+@media(max-width:640px){
+  .menuBtn{display:inline-flex;align-items:center}
+  nav{position:absolute;top:100%;left:0;right:0;max-width:none;margin:0;flex-direction:column;flex-wrap:nowrap;
+    gap:6px;padding:10px 12px;background:var(--card);border-bottom:1px solid var(--line);
+    display:none;z-index:6;box-shadow:0 10px 24px rgba(0,0,0,.45)}
+  nav.open{display:flex}
+  nav a{font-size:.95rem;padding:11px 12px;border-radius:8px}
+}
 .uchip{font-size:.78rem;color:var(--muted);cursor:pointer;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis}
 main{max-width:640px;margin:0 auto;padding:22px 16px 60px}
 h1{font-size:1.5rem;margin-bottom:4px}
@@ -132,12 +142,49 @@ label{font-size:.8rem;color:var(--muted);display:block;margin:10px 0 4px}
 .uav0{display:flex;align-items:center;justify-content:center;background:var(--card2);border:1px solid var(--line);color:var(--gold);font-weight:700;text-transform:uppercase}
 .uacts{display:flex;gap:6px;flex-wrap:wrap}
 .ndot{display:inline-block;min-width:16px;height:16px;line-height:16px;text-align:center;background:var(--red);color:#fff;border-radius:999px;font-size:.66rem;padding:0 4px;vertical-align:middle}
+/* Hộp thư admin 2 khung (kiểu Messenger) */
+.adminchat{display:flex;height:68vh;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--card)}
+.threadlist{width:42%;max-width:300px;min-width:190px;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.threadview{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+.tl-search{padding:8px;border-bottom:1px solid var(--line)}
+.tl-search input{padding:8px 10px}
+.tl-items{overflow-y:auto;flex:1;min-height:0;scrollbar-width:thin;scrollbar-color:rgba(216,164,58,.45) transparent}
+.tl-items::-webkit-scrollbar{width:8px}
+.tl-items::-webkit-scrollbar-thumb{background:rgba(216,164,58,.45);border-radius:99px}
+.tl-item{display:flex;gap:9px;align-items:center;padding:9px 10px;border-bottom:1px solid var(--line);cursor:pointer}
+.tl-item:hover{background:var(--card2)}
+.tl-item.active{background:var(--card2);box-shadow:inset 3px 0 0 var(--gold)}
+.tl-av{width:38px;height:38px;border-radius:50%;object-fit:cover;flex:0 0 38px}
+.tl-av0{display:flex;align-items:center;justify-content:center;background:var(--bg);border:1px solid var(--line);color:var(--gold);font-weight:700;text-transform:uppercase}
+.tl-main{min-width:0;flex:1}
+.tl-top{display:flex;justify-content:space-between;gap:6px;align-items:baseline}
+.tl-top b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.tl-unreadname{font-weight:700!important;color:var(--cream)}
+.tl-time{font-size:.66rem;color:var(--muted);white-space:nowrap;flex:0 0 auto}
+.tl-prev{font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-badge{flex:0 0 auto;min-width:18px;height:18px;line-height:18px;text-align:center;background:var(--gold);color:var(--bg);border-radius:999px;font-size:.7rem;font-weight:700;padding:0 5px}
+.tv-head{display:flex;gap:9px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.tv-body{flex:1;max-height:none!important}
+.threadview .chatform{margin:0;padding:10px 12px;border-top:1px solid var(--line)}
+.tv-empty{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;color:var(--muted)}
+.tv-back{display:none;width:auto;padding:6px 10px}
+@media(max-width:640px){
+  .adminchat{height:74vh}
+  .threadlist{width:100%;max-width:none}
+  .adminchat.viewing .threadlist{display:none}
+  .adminchat:not(.viewing) .threadview{display:none}
+  .adminchat.viewing .tv-back{display:inline-flex}
+}
 footer{text-align:center;color:#7c745f;font-size:.75rem;padding:20px}
 </style>
 </head>
 <body>
-<header><div class="hwrap">
-  <a class="brand" href="#home">単語<span style="color:var(--cream)"> Tango</span></a>
+<header>
+  <div class="hwrap">
+    <a class="brand" href="#home">単語<span style="color:var(--cream)"> Tango</span></a>
+    <button class="menuBtn" id="menuBtn" aria-label="Mở menu" aria-expanded="false">☰</button>
+    <span class="uchip" id="uchip">…</span>
+  </div>
   <nav id="nav">
     <a href="#home" data-r="home">Trang chủ</a>
     <a href="#learn" data-r="learn">Học</a>
@@ -147,8 +194,7 @@ footer{text-align:center;color:#7c745f;font-size:.75rem;padding:20px}
     <a href="#chat" data-r="chat">Tin nhắn</a>
     <a href="#guide" data-r="guide">Hướng dẫn</a>
   </nav>
-  <span class="uchip" id="uchip">…</span>
-</div></header>
+</header>
 <main id="view"><p class="note center">Đang tải…</p></main>
 <footer>単語 Tango · học để nhớ nghĩa — thi để giữ xu · <a href="../">Apps</a></footer>
 
@@ -308,11 +354,26 @@ function route() {
   }
   S.testing = false;
   if (S.chatUnsub) { S.chatUnsub(); S.chatUnsub = null; }
+  $("#nav")?.classList.remove("open");
+  $("#menuBtn")?.setAttribute("aria-expanded", "false");
   const r = (location.hash || "#home").slice(1).split("?")[0];
   document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.dataset.r === r));
   (routes[r] || vHome)();
 }
 window.addEventListener("hashchange", route);
+
+/* Nút ☰ (menu điện thoại): mở/đóng danh sách; bấm ra ngoài thì đóng */
+$("#menuBtn")?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const n = $("#nav"), open = n.classList.toggle("open");
+  $("#menuBtn").setAttribute("aria-expanded", String(open));
+});
+document.addEventListener("click", (e) => {
+  const n = $("#nav");
+  if (n?.classList.contains("open") && !e.target.closest("#nav") && !e.target.closest("#menuBtn")) {
+    n.classList.remove("open"); $("#menuBtn")?.setAttribute("aria-expanded", "false");
+  }
+});
 
 /* ── Trang chủ ──────────────────────────────────────────────────────── */
 function homeStats() {
@@ -1113,66 +1174,100 @@ function vChatUser() {
   $("#chatIn").addEventListener("keydown", e => { if (e.key === "Enter") send(); });
 }
 
-/* Admin: hộp thư tất cả user (?u=UID để mở 1 luồng) */
+/* Admin: hộp thư 2 khung (trái = danh sách user, phải = hội thoại).
+ * Chọn qua lại giữa các user tức thì, không rời trang. ?u=UID để mở sẵn 1 người. */
 function vChatAdmin() {
-  const uidSel = new URLSearchParams((location.hash.split("?")[1] || "")).get("u");
-  if (uidSel) return openAdminThread(uidSel);
-  $("#view").innerHTML = `<h1>Hộp thư</h1><p class="note">Đang tải…</p>`;
-  const qy = query(collection(db, "tango_threads"), orderBy("lastAt", "desc"), limit(100));
-  S.chatUnsub = onSnapshot(qy, snap => {
-    const ts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const unread = ts.reduce((a, t) => a + (t.adminUnread || 0), 0);
-    $("#view").innerHTML = `
-      <h1>Hộp thư ${unread ? `<span class="tag">${unread} mới</span>` : ""}</h1>
-      <p class="sub">Tin nhắn từ người dùng — bấm để trả lời trực tiếp.</p>
-      ${ts.length ? ts.map(t => `
-        <div class="card click" onclick="location.hash='chat?u=${esc(t.id)}'">
-          <div class="row">
-            <div style="min-width:0">
-              <b>${esc(t.name || t.email || t.id)}</b>
-              <div class="note">${esc(t.email || "")}</div>
-              <div class="note">${t.lastFrom === "admin" ? "Bạn: " : ""}${esc(t.lastText || "")}</div>
-            </div>
-            <div style="text-align:right;white-space:nowrap">
-              ${t.adminUnread ? `<span class="tag">${t.adminUnread}</span>` : ""}
-              <div class="note">${t.lastAt ? fmtTime(t.lastAt) : ""}</div>
-            </div>
-          </div>
-        </div>`).join("")
-      : `<div class="card center"><p class="note">Chưa có ai nhắn tin.</p></div>`}`;
-  }, err => { $("#view").innerHTML = `<h1>Hộp thư</h1><p class="err">${esc(errMsg(err))}</p>`; });
-}
-async function openAdminThread(uid) {
-  $("#view").innerHTML = `<h1>Trả lời</h1><p class="note">Đang tải…</p>`;
-  let meta = {};
-  try { const s = await getDoc(doc(db, "tango_threads", uid)); meta = s.exists() ? s.data() : {}; } catch (e) {}
+  let listUnsub = null, msgUnsub = null, threads = [], filter = "";
+  let selUid = new URLSearchParams((location.hash.split("?")[1] || "")).get("u");
+  S.chatUnsub = () => { if (listUnsub) listUnsub(); if (msgUnsub) msgUnsub(); listUnsub = msgUnsub = null; };
+
   $("#view").innerHTML = `
-    <p class="note"><a href="#chat">← Hộp thư</a></p>
-    <h1 style="font-size:1.2rem">${esc(meta.name || meta.email || uid)}</h1>
-    ${meta.email ? `<p class="sub">${esc(meta.email)}</p>` : ""}
-    <div class="card">
-      <div id="chatBox" class="chatbox"><p class="note">Đang tải…</p></div>
+    <div class="row" style="margin-bottom:10px"><h1 style="margin:0">Hộp thư <span id="acUnread"></span></h1></div>
+    <div class="adminchat" id="ac">
+      <aside class="threadlist">
+        <div class="tl-search"><input id="tlSearch" placeholder="🔍 Tìm tên hoặc email…" autocomplete="off"></div>
+        <div class="tl-items" id="tlItems"><p class="note" style="padding:12px">Đang tải…</p></div>
+      </aside>
+      <section class="threadview" id="tv"><div class="tv-empty">← Chọn một người để xem và trả lời.</div></section>
+    </div>`;
+  $("#tlSearch").addEventListener("input", e => { filter = e.target.value.trim().toLowerCase(); renderList(); });
+
+  listUnsub = onSnapshot(
+    query(collection(db, "tango_threads"), orderBy("lastAt", "desc"), limit(300)),
+    snap => { threads = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderList();
+      if (selUid && !msgUnsub) openThread(selUid); },
+    err => { const b = $("#tlItems"); if (b) b.innerHTML = `<p class="err" style="padding:12px">${esc(errMsg(err))}</p>`; });
+
+  function renderList() {
+    const box = $("#tlItems"); if (!box) return;
+    const uEl = $("#acUnread");
+    const totalUnread = threads.reduce((a, t) => a + (t.adminUnread || 0), 0);
+    if (uEl) uEl.innerHTML = totalUnread ? `<span class="tag">${totalUnread} mới</span>` : "";
+    const items = filter
+      ? threads.filter(t => `${t.name || ""} ${t.email || ""}`.toLowerCase().includes(filter))
+      : threads;
+    if (!items.length) {
+      box.innerHTML = `<p class="note" style="padding:12px">${threads.length ? "Không khớp." : "Chưa có ai nhắn tin."}</p>`;
+      return;
+    }
+    box.innerHTML = items.map(t => {
+      const un = t.adminUnread || 0;
+      return `<div class="tl-item ${t.id === selUid ? "active" : ""}" data-uid="${esc(t.id)}">
+        ${t.photo ? `<img class="tl-av" src="${esc(t.photo)}" alt="" referrerpolicy="no-referrer">`
+                  : `<span class="tl-av tl-av0">${esc(String(t.name || t.email || "?").trim()[0] || "?")}</span>`}
+        <div class="tl-main">
+          <div class="tl-top"><b class="${un ? "tl-unreadname" : ""}">${esc(t.name || t.email || t.id)}</b>
+            ${t.lastAt ? `<span class="tl-time">${fmtTime(t.lastAt)}</span>` : ""}</div>
+          <div class="tl-prev">${t.lastFrom === "admin" ? "Bạn: " : ""}${esc(t.lastText || "")}</div>
+        </div>
+        ${un ? `<span class="tl-badge">${un > 9 ? "9+" : un}</span>` : ""}
+      </div>`;
+    }).join("");
+    box.querySelectorAll(".tl-item").forEach(el => el.addEventListener("click", () => openThread(el.dataset.uid)));
+  }
+
+  function openThread(uid) {
+    selUid = uid;
+    if (msgUnsub) { msgUnsub(); msgUnsub = null; }
+    history.replaceState(null, "", "#chat?u=" + uid);
+    $("#ac")?.classList.add("viewing");
+    renderList();
+    const t = threads.find(x => x.id === uid) || {};
+    const tv = $("#tv"); if (!tv) return;
+    tv.innerHTML = `
+      <div class="tv-head">
+        <button class="tv-back btn2" id="tvBack" aria-label="Quay lại">←</button>
+        ${t.photo ? `<img class="tl-av" src="${esc(t.photo)}" alt="" referrerpolicy="no-referrer">`
+                  : `<span class="tl-av tl-av0">${esc(String(t.name || t.email || "?").trim()[0] || "?")}</span>`}
+        <div class="tl-main"><b>${esc(t.name || t.email || uid)}</b><div class="note">${esc(t.email || "")}</div></div>
+      </div>
+      <div class="chatbox tv-body" id="chatBox"><p class="note" style="padding:12px">Đang tải…</p></div>
       <div class="chatform">
-        <input id="chatIn" placeholder="Trả lời…" maxlength="2000" autocomplete="off">
+        <input id="chatIn" placeholder="Trả lời${t.name ? " " + esc(t.name) : ""}…" maxlength="2000" autocomplete="off">
         <button class="mini btn" id="chatSend">Gửi</button>
       </div>
-      <div id="chatErr"></div>
-    </div>`;
-  const msgsQ = query(collection(doc(db, "tango_threads", uid), "messages"), orderBy("createdAt", "asc"), limit(400));
-  if (S.chatUnsub) { S.chatUnsub(); S.chatUnsub = null; }
-  S.chatUnsub = onSnapshot(msgsQ, snap => {
-    renderBubbles($("#chatBox"), snap.docs.map(d => d.data()), "admin");
-    markRead(uid, "admin");
-  }, err => { const b = $("#chatBox"); if (b) b.innerHTML = `<p class="err">${esc(errMsg(err))}</p>`; });
-  const send = async () => {
-    const inp = $("#chatIn"), t = inp.value.trim(); if (!t) return;
-    inp.value = ""; inp.focus();
-    try { await sendMessage(uid, "admin", t,
-      { email: meta.email || null, name: meta.name || null, photo: meta.photo || null }); }
-    catch (e) { $("#chatErr").innerHTML = `<p class="err">${esc(errMsg(e))}</p>`; }
-  };
-  $("#chatSend").addEventListener("click", send);
-  $("#chatIn").addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+      <div id="chatErr" style="padding:0 12px"></div>`;
+    $("#tvBack")?.addEventListener("click", () => {
+      selUid = null; if (msgUnsub) { msgUnsub(); msgUnsub = null; }
+      history.replaceState(null, "", "#chat");
+      $("#ac")?.classList.remove("viewing"); renderList();
+      const el = $("#tv"); if (el) el.innerHTML = `<div class="tv-empty">← Chọn một người để xem và trả lời.</div>`;
+    });
+    const msgsQ = query(collection(doc(db, "tango_threads", uid), "messages"), orderBy("createdAt", "asc"), limit(500));
+    msgUnsub = onSnapshot(msgsQ, snap => {
+      renderBubbles($("#chatBox"), snap.docs.map(d => d.data()), "admin"); markRead(uid, "admin");
+    }, err => { const b = $("#chatBox"); if (b) b.innerHTML = `<p class="err">${esc(errMsg(err))}</p>`; });
+    const send = async () => {
+      const inp = $("#chatIn"), v = inp.value.trim(); if (!v) return;
+      inp.value = ""; inp.focus();
+      try { await sendMessage(uid, "admin", v,
+        { email: t.email || null, name: t.name || null, photo: t.photo || null }); }
+      catch (e) { $("#chatErr").innerHTML = `<p class="err">${esc(errMsg(e))}</p>`; }
+    };
+    $("#chatSend").addEventListener("click", send);
+    $("#chatIn").addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+    if (window.innerWidth > 640) $("#chatIn").focus();
+  }
 }
 
 /* Chấm đỏ số tin chưa đọc trên tab "Tin nhắn" */
