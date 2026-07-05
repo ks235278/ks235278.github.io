@@ -107,10 +107,11 @@ label{font-size:.8rem;color:var(--muted);display:block;margin:10px 0 4px}
 .gcur .gdot{background:var(--gold);border-color:var(--gold);color:var(--bg)}
 .gcur>div>b{color:var(--gold)}
 .chatbox{max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 2px 8px}
-.bubble{max-width:82%;padding:9px 12px;border-radius:12px;font-size:.95rem;word-wrap:break-word;overflow-wrap:anywhere;white-space:pre-wrap}
-.bubble.me{align-self:flex-end;background:var(--gold);color:var(--bg);border-bottom-right-radius:4px}
-.bubble.them{align-self:flex-start;background:var(--card2);border:1px solid var(--line);border-bottom-left-radius:4px}
-.bubble .bmeta{font-size:.68rem;opacity:.7;margin-top:3px}
+.bubble{max-width:75%;padding:8px 13px;border-radius:16px;font-size:.95rem;line-height:1.4}
+.bubble.me{align-self:flex-end;background:var(--gold);color:var(--bg);border-bottom-right-radius:5px}
+.bubble.them{align-self:flex-start;background:var(--card2);border:1px solid var(--line);border-bottom-left-radius:5px}
+.bubble .btext{white-space:pre-wrap;overflow-wrap:break-word}
+.bubble .bmeta{font-size:.66rem;opacity:.65;margin-top:2px}
 .chatform{display:flex;gap:8px;margin-top:10px}
 .chatform input{flex:1}
 .chatform .mini{width:auto;white-space:nowrap}
@@ -1053,10 +1054,7 @@ function renderBubbles(box, msgs, viewer) {
   box.innerHTML = msgs.map(m => {
     const mine = m.from === viewer;
     const label = mine ? "" : (m.from === "admin" ? "👑 Admin" : "Người dùng");
-    return `<div class="bubble ${mine ? "me" : "them"}">
-      <div class="btext">${esc(m.text)}</div>
-      <div class="bmeta">${label ? esc(label) + " · " : ""}${m.createdAt ? fmtTime(m.createdAt) : "đang gửi…"}</div>
-    </div>`;
+    return `<div class="bubble ${mine ? "me" : "them"}"><div class="btext">${esc(m.text)}</div><div class="bmeta">${label ? esc(label) + " · " : ""}${m.createdAt ? fmtTime(m.createdAt) : "đang gửi…"}</div></div>`;
   }).join("");
   box.scrollTop = box.scrollHeight;
 }
