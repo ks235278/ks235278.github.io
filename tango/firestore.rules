@@ -110,5 +110,38 @@ service cloud.firestore {
                  && request.resource.data.learnedAt == resource.data.learnedAt;
       allow delete: if false;
     }
+
+    // Sổ đăng ký user Tango — user tự ghi hồ sơ mình; admin liệt kê được tất cả.
+    // Không dính xu, nên client ghi thẳng hồ sơ của chính mình.
+    match /tango_users/{uid} {
+      allow get:  if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create, update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if isAdmin();
+    }
+
+    // Tin nhắn giữa user và admin. Mỗi user một luồng /tango_threads/{uid}.
+    // Không dính xu → client được ghi, nhưng chỉ luồng của CHÍNH MÌNH và chỉ
+    // dán nhãn from == 'user'; admin dán nhãn from == 'admin'. Tin đã gửi bất biến.
+    match /tango_threads/{uid} {
+      allow get:  if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create, update: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow delete: if isAdmin();
+
+      match /messages/{msgId} {
+        allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+        allow create: if request.auth != null
+                   && request.resource.data.text is string
+                   && request.resource.data.text.size() > 0
+                   && request.resource.data.text.size() <= 2000
+                   && request.resource.data.createdAt == request.time
+                   && (
+                        (request.auth.uid == uid && request.resource.data.from == 'user')
+                     || (isAdmin() && request.resource.data.from == 'admin')
+                      );
+        allow update, delete: if isAdmin();
+      }
+    }
   }
 }

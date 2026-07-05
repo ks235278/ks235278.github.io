@@ -106,6 +106,22 @@ label{font-size:.8rem;color:var(--muted);display:block;margin:10px 0 4px}
 .gdone .gdot{background:rgba(143,191,111,.15);border-color:var(--green);color:var(--green)}
 .gcur .gdot{background:var(--gold);border-color:var(--gold);color:var(--bg)}
 .gcur>div>b{color:var(--gold)}
+.chatbox{max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 2px 8px}
+.bubble{max-width:82%;padding:9px 12px;border-radius:12px;font-size:.95rem;word-wrap:break-word;overflow-wrap:anywhere;white-space:pre-wrap}
+.bubble.me{align-self:flex-end;background:var(--gold);color:var(--bg);border-bottom-right-radius:4px}
+.bubble.them{align-self:flex-start;background:var(--card2);border:1px solid var(--line);border-bottom-left-radius:4px}
+.bubble .bmeta{font-size:.68rem;opacity:.7;margin-top:3px}
+.chatform{display:flex;gap:8px;margin-top:10px}
+.chatform input{flex:1}
+.chatform .mini{width:auto;white-space:nowrap}
+.chatprompt{color:var(--gold);font-weight:600;text-align:center;padding:14px 0;font-size:1.02rem}
+.urow{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.urow:last-child{border-bottom:none}
+.uinfo{display:flex;gap:10px;align-items:center;min-width:0;flex:1}
+.uav{width:38px;height:38px;border-radius:50%;object-fit:cover;flex:0 0 38px}
+.uav0{display:flex;align-items:center;justify-content:center;background:var(--card2);border:1px solid var(--line);color:var(--gold);font-weight:700;text-transform:uppercase}
+.uacts{display:flex;gap:6px;flex-wrap:wrap}
+.ndot{display:inline-block;min-width:16px;height:16px;line-height:16px;text-align:center;background:var(--red);color:#fff;border-radius:999px;font-size:.66rem;padding:0 4px;vertical-align:middle}
 footer{text-align:center;color:#7c745f;font-size:.75rem;padding:20px}
 </style>
 </head>
@@ -118,6 +134,7 @@ footer{text-align:center;color:#7c745f;font-size:.75rem;padding:20px}
     <a href="#mock" data-r="mock">Thi thử</a>
     <a href="#test" data-r="test">Thi thật</a>
     <a href="#wallet" data-r="wallet">Ví</a>
+    <a href="#chat" data-r="chat">Tin nhắn</a>
     <a href="#guide" data-r="guide">Hướng dẫn</a>
   </nav>
   <span class="uchip" id="uchip">…</span>
@@ -130,7 +147,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
          onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query,
-         where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+         where, orderBy, limit, getDocs, addDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-functions.js";
 
 /* ── Firebase (dùng chung project với N1 quiz) ─────────────────────── */
@@ -150,7 +167,7 @@ const fns  = getFunctions(app, "asia-northeast1");
 const call = (name, data) => httpsCallable(fns, name)(data).then(r => r.data);
 
 /* ── State ──────────────────────────────────────────────────────────── */
-const S = { bank: [], byId: {}, user: null, cfg: null, testing: false };
+const S = { bank: [], byId: {}, user: null, cfg: null, testing: false, chatUnsub: null };
 const PKEY = "tango.progress.v1";
 let prog = {};
 try { prog = JSON.parse(localStorage.getItem(PKEY) || "{}"); } catch (e) { prog = {}; }
@@ -209,6 +226,9 @@ document.addEventListener("click", e => {
   else if (el.dataset.spkex && S.byId[el.dataset.spkex]) speakEx(S.byId[el.dataset.spkex]);
 });
 const fmtDate = ts => { const d = ts?.toDate ? ts.toDate() : new Date(ts); return d.toLocaleDateString("vi-VN"); };
+const fmtTime = ts => { const d = ts?.toDate ? ts.toDate() : (ts ? new Date(ts) : null);
+  return d ? d.toLocaleString("vi-VN", { hour:"2-digit", minute:"2-digit", day:"2-digit", month:"2-digit" }) : ""; };
+const tsMs = ts => ts?.toMillis ? ts.toMillis() : (ts?.seconds ? ts.seconds * 1000 : 0);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const jstToday = () => new Date(Date.now() + 9*3600e3).toISOString().slice(0, 10);
 
@@ -271,12 +291,13 @@ function recordLearn(item, ok) {
 }
 
 /* ── Router ─────────────────────────────────────────────────────────── */
-const routes = { home: vHome, learn: vLearn, mock: vMock, test: vOfficial, wallet: vWallet, guide: vGuide, admin: vAdmin };
+const routes = { home: vHome, learn: vLearn, mock: vMock, test: vOfficial, wallet: vWallet, chat: vChat, guide: vGuide, admin: vAdmin };
 function route() {
   if (S.testing && !confirm("Đang làm bài — rời đi sẽ mất phần chưa nộp. Rời đi?")) {
     history.replaceState(null, "", "#" + S.testing); return;
   }
   S.testing = false;
+  if (S.chatUnsub) { S.chatUnsub(); S.chatUnsub = null; }
   const r = (location.hash || "#home").slice(1).split("?")[0];
   document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.dataset.r === r));
   (routes[r] || vHome)();
@@ -773,7 +794,7 @@ async function vAdmin() {
       <button class="btn2" style="margin-top:10px" id="cSave">Lưu cấu hình</button>
       <div id="cOut"></div>
     </div>
-    <div class="card"><b>Ví người dùng</b><div id="aWallets" class="note" style="margin-top:8px">Đang tải…</div></div>
+    <div class="card"><b>Người dùng đã đăng ký</b><div id="aUsers" class="note" style="margin-top:8px">Đang tải…</div></div>
     <div class="card"><b>Bài thi bị gắn cờ</b><div id="aFlags" class="note" style="margin-top:8px">Đang tải…</div></div>`;
   $("#aGo").addEventListener("click", async () => {
     const who = $("#aWho").value.trim(), amount = +$("#aAmt").value, reason = $("#aWhy").value.trim();
@@ -801,19 +822,42 @@ async function vAdmin() {
     } catch (e) { $("#cOut").innerHTML = `<p class="err">${esc(errMsg(e))}</p>`; }
   });
   try {
-    const ws = await getDocs(query(collection(db, "tango_wallets"), limit(50)));
-    $("#aWallets").innerHTML = ws.empty ? "Chưa có ví nào." :
-      `<table class="ledger">${ws.docs.map(d => `<tr><td>${esc(d.data().email || d.id)}</td>
-        <td class="amt">${d.data().balance} xu</td>
-        <td class="amt"><button class="mini btn2" data-uid="${esc(d.id)}">kiểm toán</button></td></tr>`).join("")}</table>`;
-    document.querySelectorAll("[data-uid]").forEach(b => b.addEventListener("click", async () => {
+    const [us, ws] = await Promise.all([
+      getDocs(query(collection(db, "tango_users"), limit(300))),
+      getDocs(query(collection(db, "tango_wallets"), limit(300))),
+    ]);
+    const wmap = {}; ws.forEach(d => wmap[d.id] = d.data());
+    const seen = new Set(), rows = [];
+    us.forEach(d => { seen.add(d.id); rows.push({ uid: d.id, ...d.data(), balance: wmap[d.id]?.balance ?? null }); });
+    ws.forEach(d => { if (!seen.has(d.id)) rows.push({ uid: d.id, email: d.data().email, balance: d.data().balance, legacy: true }); });
+    const list = rows.filter(u => u.email !== ADMIN_EMAIL).sort((a, b) => tsMs(b.lastSeenAt) - tsMs(a.lastSeenAt));
+    $("#aUsers").innerHTML = list.length ? `<div class="note" style="margin-bottom:6px">Tổng ${list.length} người</div>` +
+      list.map(u => `<div class="urow">
+        <div class="uinfo">
+          ${u.photo ? `<img class="uav" src="${esc(u.photo)}" alt="" referrerpolicy="no-referrer">`
+                    : `<span class="uav uav0">${esc(String(u.name || u.email || "?").trim()[0] || "?")}</span>`}
+          <div style="min-width:0">
+            <b>${esc(u.name || u.email || u.uid)}</b>${u.legacy ? ` <span class="tag dim">cũ</span>` : ""}
+            <div class="note">${esc(u.email || u.uid)}</div>
+            <div class="note">${u.balance != null ? `${u.balance} xu` : "chưa có ví"} ·
+              đăng ký ${u.createdAt ? fmtDate(u.createdAt) : "—"} ·
+              hoạt động ${u.lastSeenAt ? fmtDate(u.lastSeenAt) : "—"}${u.learnedCount != null ? ` · học ${u.learnedCount} mục` : ""}</div>
+          </div>
+        </div>
+        <div class="uacts">
+          <button class="mini btn2" onclick="location.hash='chat?u=${esc(u.uid)}'">💬 Nhắn</button>
+          <button class="mini btn2" data-audit="${esc(u.uid)}"${u.balance == null ? " disabled" : ""}>kiểm toán</button>
+        </div>
+      </div>`).join("")
+      : "Chưa có người dùng nào.";
+    document.querySelectorAll("[data-audit]").forEach(b => b.addEventListener("click", async () => {
       b.textContent = "…";
-      try { const r = await call("auditWallet", { uid: b.dataset.uid });
+      try { const r = await call("auditWallet", { uid: b.dataset.audit });
         b.textContent = r.ok ? "khớp ✓" : `LỆCH: ví ${r.balance} ≠ sổ ${r.sum}`;
         b.style.color = r.ok ? "var(--green)" : "var(--red)";
       } catch (e) { b.textContent = "lỗi"; }
     }));
-  } catch (e) { $("#aWallets").innerHTML = `<span class="err">${esc(errMsg(e))}</span>`; }
+  } catch (e) { $("#aUsers").innerHTML = `<span class="err">${esc(errMsg(e))}</span>`; }
   try {
     const fs = await getDocs(query(collection(db, "tango_tests"), where("flagged","==",true), limit(20)));
     $("#aFlags").innerHTML = fs.empty ? "Không có bài nào bị gắn cờ." :
@@ -974,6 +1018,173 @@ async function vGuide() {
     <p class="note center"><a href="#home">← Về trang chủ</a></p>`;
 }
 
+/* ── Sổ đăng ký user: ghi hồ sơ mỗi lần đăng nhập ─────────────────── */
+async function recordUser(u) {
+  try {
+    const ref = doc(db, "tango_users", u.uid);
+    let learned = 0;
+    for (const it of S.bank) if (prog[it.id]?.firstOk) learned++;
+    const base = { email: u.email || null, name: u.displayName || null,
+                   photo: u.photoURL || null, learnedCount: learned,
+                   lastSeenAt: serverTimestamp() };
+    const snap = await getDoc(ref);
+    if (snap.exists()) await setDoc(ref, base, { merge: true });
+    else await setDoc(ref, { ...base, createdAt: serverTimestamp() });
+  } catch (e) { console.warn("recordUser:", e); }
+}
+
+/* ── Tin nhắn: user ↔ admin, mỗi user một luồng /tango_threads/{uid} ── */
+async function sendMessage(uid, from, text, meta) {
+  text = String(text || "").trim();
+  if (!text) return;
+  const tref = doc(db, "tango_threads", uid);
+  await addDoc(collection(tref, "messages"), { from, text, createdAt: serverTimestamp() });
+  const upd = { uid, lastText: text.slice(0, 120), lastAt: serverTimestamp(), lastFrom: from, ...(meta || {}) };
+  upd[from === "user" ? "adminUnread" : "userUnread"] = increment(1);
+  await setDoc(tref, upd, { merge: true });
+}
+async function markRead(uid, who) {
+  try { await setDoc(doc(db, "tango_threads", uid),
+    { [who === "admin" ? "adminUnread" : "userUnread"]: 0 }, { merge: true }); } catch (e) {}
+}
+function renderBubbles(box, msgs, viewer) {
+  if (!box) return;
+  if (!msgs.length) { box.innerHTML = `<p class="note center" style="padding:16px 0">Chưa có tin nhắn nào — hãy bắt đầu.</p>`; return; }
+  box.innerHTML = msgs.map(m => {
+    const mine = m.from === viewer;
+    const label = mine ? "" : (m.from === "admin" ? "👑 Admin" : "Người dùng");
+    return `<div class="bubble ${mine ? "me" : "them"}">
+      <div class="btext">${esc(m.text)}</div>
+      <div class="bmeta">${label ? esc(label) + " · " : ""}${m.createdAt ? fmtTime(m.createdAt) : "đang gửi…"}</div>
+    </div>`;
+  }).join("");
+  box.scrollTop = box.scrollHeight;
+}
+
+/* Điểm vào: admin thấy hộp thư; user thường thấy khung chat với admin */
+function vChat() {
+  if (!S.user) {
+    $("#view").innerHTML = `<h1>Tin nhắn</h1>
+      <div class="card center"><p>Đăng nhập để nhắn tin cho admin.</p>
+      <button class="btn" style="margin-top:12px" id="loginBtn">Đăng nhập bằng Google</button></div>`;
+    $("#loginBtn").addEventListener("click", login); return;
+  }
+  return isAdmin() ? vChatAdmin() : vChatUser();
+}
+
+/* User thường: khung chat riêng với admin */
+function vChatUser() {
+  const uid = S.user.uid;
+  $("#view").innerHTML = `
+    <h1>Tin nhắn</h1>
+    <p class="sub">Nhắn riêng cho admin — góp ý, hỏi về xu, xin cấp xu, báo lỗi… Chỉ bạn và admin đọc được.</p>
+    <div class="card">
+      <div id="chatInvite"></div>
+      <div id="chatBox" class="chatbox"><p class="note">Đang tải…</p></div>
+      <div class="chatform">
+        <input id="chatIn" placeholder="Có lời muốn nói admin?" maxlength="2000" autocomplete="off">
+        <button class="mini btn" id="chatSend">Gửi</button>
+      </div>
+      <div id="chatErr"></div>
+    </div>`;
+  const msgsQ = query(collection(doc(db, "tango_threads", uid), "messages"), orderBy("createdAt", "asc"), limit(300));
+  S.chatUnsub = onSnapshot(msgsQ, snap => {
+    const msgs = snap.docs.map(d => d.data());
+    renderBubbles($("#chatBox"), msgs, "user");
+    const inv = $("#chatInvite");
+    if (inv) inv.innerHTML = msgs.length ? "" : `<p class="chatprompt">💬 Có lời muốn nói admin?</p>`;
+    if (msgs.length) markRead(uid, "user");
+  }, err => { const b = $("#chatBox"); if (b) b.innerHTML = `<p class="err">${esc(errMsg(err))}</p>`; });
+  const send = async () => {
+    const inp = $("#chatIn"), t = inp.value.trim(); if (!t) return;
+    inp.value = ""; inp.focus();
+    try { await sendMessage(uid, "user", t,
+      { email: S.user.email || null, name: S.user.displayName || null, photo: S.user.photoURL || null }); }
+    catch (e) { $("#chatErr").innerHTML = `<p class="err">${esc(errMsg(e))}</p>`; }
+  };
+  $("#chatSend").addEventListener("click", send);
+  $("#chatIn").addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+}
+
+/* Admin: hộp thư tất cả user (?u=UID để mở 1 luồng) */
+function vChatAdmin() {
+  const uidSel = new URLSearchParams((location.hash.split("?")[1] || "")).get("u");
+  if (uidSel) return openAdminThread(uidSel);
+  $("#view").innerHTML = `<h1>Hộp thư</h1><p class="note">Đang tải…</p>`;
+  const qy = query(collection(db, "tango_threads"), orderBy("lastAt", "desc"), limit(100));
+  S.chatUnsub = onSnapshot(qy, snap => {
+    const ts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const unread = ts.reduce((a, t) => a + (t.adminUnread || 0), 0);
+    $("#view").innerHTML = `
+      <h1>Hộp thư ${unread ? `<span class="tag">${unread} mới</span>` : ""}</h1>
+      <p class="sub">Tin nhắn từ người dùng — bấm để trả lời trực tiếp.</p>
+      ${ts.length ? ts.map(t => `
+        <div class="card click" onclick="location.hash='chat?u=${esc(t.id)}'">
+          <div class="row">
+            <div style="min-width:0">
+              <b>${esc(t.name || t.email || t.id)}</b>
+              <div class="note">${esc(t.email || "")}</div>
+              <div class="note">${t.lastFrom === "admin" ? "Bạn: " : ""}${esc(t.lastText || "")}</div>
+            </div>
+            <div style="text-align:right;white-space:nowrap">
+              ${t.adminUnread ? `<span class="tag">${t.adminUnread}</span>` : ""}
+              <div class="note">${t.lastAt ? fmtTime(t.lastAt) : ""}</div>
+            </div>
+          </div>
+        </div>`).join("")
+      : `<div class="card center"><p class="note">Chưa có ai nhắn tin.</p></div>`}`;
+  }, err => { $("#view").innerHTML = `<h1>Hộp thư</h1><p class="err">${esc(errMsg(err))}</p>`; });
+}
+async function openAdminThread(uid) {
+  $("#view").innerHTML = `<h1>Trả lời</h1><p class="note">Đang tải…</p>`;
+  let meta = {};
+  try { const s = await getDoc(doc(db, "tango_threads", uid)); meta = s.exists() ? s.data() : {}; } catch (e) {}
+  $("#view").innerHTML = `
+    <p class="note"><a href="#chat">← Hộp thư</a></p>
+    <h1 style="font-size:1.2rem">${esc(meta.name || meta.email || uid)}</h1>
+    ${meta.email ? `<p class="sub">${esc(meta.email)}</p>` : ""}
+    <div class="card">
+      <div id="chatBox" class="chatbox"><p class="note">Đang tải…</p></div>
+      <div class="chatform">
+        <input id="chatIn" placeholder="Trả lời…" maxlength="2000" autocomplete="off">
+        <button class="mini btn" id="chatSend">Gửi</button>
+      </div>
+      <div id="chatErr"></div>
+    </div>`;
+  const msgsQ = query(collection(doc(db, "tango_threads", uid), "messages"), orderBy("createdAt", "asc"), limit(400));
+  if (S.chatUnsub) { S.chatUnsub(); S.chatUnsub = null; }
+  S.chatUnsub = onSnapshot(msgsQ, snap => {
+    renderBubbles($("#chatBox"), snap.docs.map(d => d.data()), "admin");
+    markRead(uid, "admin");
+  }, err => { const b = $("#chatBox"); if (b) b.innerHTML = `<p class="err">${esc(errMsg(err))}</p>`; });
+  const send = async () => {
+    const inp = $("#chatIn"), t = inp.value.trim(); if (!t) return;
+    inp.value = ""; inp.focus();
+    try { await sendMessage(uid, "admin", t,
+      { email: meta.email || null, name: meta.name || null, photo: meta.photo || null }); }
+    catch (e) { $("#chatErr").innerHTML = `<p class="err">${esc(errMsg(e))}</p>`; }
+  };
+  $("#chatSend").addEventListener("click", send);
+  $("#chatIn").addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+}
+
+/* Chấm đỏ số tin chưa đọc trên tab "Tin nhắn" */
+let unreadUnsub = null;
+function watchUnread() {
+  if (unreadUnsub) { unreadUnsub(); unreadUnsub = null; }
+  const nav = document.querySelector('#nav a[data-r="chat"]');
+  const setBadge = n => { if (nav) nav.innerHTML = `Tin nhắn${n ? ` <span class="ndot">${n > 9 ? "9+" : n}</span>` : ""}`; };
+  setBadge(0);
+  if (!S.user) return;
+  if (isAdmin()) {
+    unreadUnsub = onSnapshot(query(collection(db, "tango_threads"), where("adminUnread", ">", 0)),
+      s => { let n = 0; s.forEach(d => n += d.data().adminUnread || 0); setBadge(n); }, () => {});
+  } else {
+    unreadUnsub = onSnapshot(doc(db, "tango_threads", S.user.uid),
+      s => setBadge(s.exists() ? (s.data().userUnread || 0) : 0), () => {});
+  }
+}
+
 /* ── Auth ───────────────────────────────────────────────────────────── */
 async function login() {
   const prov = new GoogleAuthProvider();
@@ -992,10 +1203,12 @@ onAuthStateChanged(auth, u => {
     chip.textContent = u.displayName || u.email;
     chip.title = "Bấm để đăng xuất";
     chip.onclick = () => { if (confirm("Đăng xuất?")) signOut(auth); };
+    recordUser(u);
   } else {
     chip.textContent = "Đăng nhập"; chip.title = "";
     chip.onclick = login;
   }
+  watchUnread();
   route();
 });
 
