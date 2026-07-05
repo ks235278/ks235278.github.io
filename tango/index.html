@@ -12,9 +12,13 @@
 :root{--bg:#16140f;--card:#211d15;--card2:#2a2519;--line:#36301f;--cream:#ece3cf;--muted:#a99e84;
   --gold:#d8a43a;--green:#8fbf6f;--red:#e06a5e;--radius:14px}
 *{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;scrollbar-width:thin;scrollbar-color:rgba(216,164,58,.4) transparent}
 body{background:var(--bg);color:var(--cream);min-height:100vh;
   font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;line-height:1.55}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(216,164,58,.35);border-radius:99px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(216,164,58,.6);background-clip:padding-box}
 .jp{font-family:'Noto Serif JP','Yu Mincho','Hiragino Mincho ProN',serif}
 a{color:var(--gold)}
 header{position:sticky;top:0;z-index:5;background:rgba(22,20,15,.94);backdrop-filter:blur(4px);
