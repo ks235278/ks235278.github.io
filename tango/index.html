@@ -177,6 +177,13 @@ label{font-size:.8rem;color:var(--muted);display:block;margin:10px 0 4px}
   .adminchat:not(.viewing) .threadview{display:none}
   .adminchat.viewing .tv-back{display:inline-flex}
 }
+/* Điện thoại: ghim nút "Tiếp tục" (mode Học) cố định đáy màn hình — khỏi cuộn tay */
+@media(max-width:640px){
+  #nextBtn{position:fixed;left:0;right:0;bottom:0;width:auto;margin:0;border-radius:0;
+    padding:15px 18px calc(15px + env(safe-area-inset-bottom,0px));
+    box-shadow:0 -6px 18px rgba(0,0,0,.55);z-index:7}
+  main{padding-bottom:96px}
+}
 footer{text-align:center;color:#7c745f;font-size:.75rem;padding:20px}
 </style>
 </head>
