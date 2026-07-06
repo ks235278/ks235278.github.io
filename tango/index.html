@@ -307,6 +307,17 @@ document.addEventListener("keydown", (e) => {
   idx = idx < 0 ? (back ? group.length - 1 : 0) : (idx + (back ? -1 : 1) + group.length) % group.length;
   group[idx].focus();
 });
+/* Đã trả lời (mode Học): dấu cách = qua câu tiếp theo, dù đang focus nút 🔊 nào.
+ * (Enter vẫn kích hoạt nút đang chọn: nghe phát âm / Tiếp tục.) */
+document.addEventListener("keydown", (e) => {
+  if (e.key !== " " && e.code !== "Space") return;
+  const ae = document.activeElement;
+  if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
+  const next = $("#view")?.querySelector("#nextBtn");
+  if (!next) return;
+  e.preventDefault();
+  next.click();
+});
 const fmtDate = ts => { const d = ts?.toDate ? ts.toDate() : new Date(ts); return d.toLocaleDateString("vi-VN"); };
 const fmtTime = ts => { const d = ts?.toDate ? ts.toDate() : (ts ? new Date(ts) : null);
   return d ? d.toLocaleString("vi-VN", { hour:"2-digit", minute:"2-digit", day:"2-digit", month:"2-digit" }) : ""; };
