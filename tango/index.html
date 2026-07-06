@@ -52,6 +52,8 @@ h2{font-size:1.1rem;margin:18px 0 8px}
 .tag{display:inline-block;font-size:.72rem;color:var(--bg);background:var(--gold);border-radius:999px;padding:2px 9px;font-weight:600}
 .tag.dim{background:var(--line);color:var(--muted)}
 button{font:inherit;cursor:pointer;border:none;border-radius:10px;padding:11px 18px;font-weight:600}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.opt:focus,#pack button:focus{outline:2px solid var(--gold);outline-offset:2px;border-color:var(--gold)}
 .btn{background:var(--gold);color:var(--bg);width:100%}
 .btn:disabled{opacity:.45;cursor:default}
 .btn2{background:var(--card2);color:var(--cream);border:1px solid var(--line);width:100%}
@@ -281,6 +283,30 @@ document.addEventListener("click", e => {
   if (el.dataset.spk && S.byId[el.dataset.spk]) speak(S.byId[el.dataset.spk]);
   else if (el.dataset.spkex && S.byId[el.dataset.spkex]) speakEx(S.byId[el.dataset.spkex]);
 });
+
+/* ── Điều khiển trắc nghiệm bằng bàn phím: ←→↑↓ di chuyển, Enter/Space chọn ──
+ * Nhóm đang hoạt động: các đáp án chưa khoá; khi đã trả lời (mode Học) chuyển sang
+ * các nút trong gói ghi nhớ (🔊 từ · 🔊 câu ví dụ · Tiếp tục). Enter/Space dùng
+ * hành vi mặc định của nút nên không cần xử lý riêng. */
+function kbdGroup() {
+  const view = $("#view"); if (!view) return null;
+  const opts = [...view.querySelectorAll(".opt:not(:disabled)")];
+  if (opts.length) return opts;
+  const pack = [...view.querySelectorAll("#pack button")];
+  return pack.length ? pack : null;
+}
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+  const ae = document.activeElement;
+  if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
+  const group = kbdGroup(); if (!group || !group.length) return;
+  e.preventDefault();
+  const back = e.key === "ArrowUp" || e.key === "ArrowLeft";
+  let idx = group.indexOf(ae);
+  idx = idx < 0 ? (back ? group.length - 1 : 0) : (idx + (back ? -1 : 1) + group.length) % group.length;
+  group[idx].focus();
+});
 const fmtDate = ts => { const d = ts?.toDate ? ts.toDate() : new Date(ts); return d.toLocaleDateString("vi-VN"); };
 const fmtTime = ts => { const d = ts?.toDate ? ts.toDate() : (ts ? new Date(ts) : null);
   return d ? d.toLocaleString("vi-VN", { hour:"2-digit", minute:"2-digit", day:"2-digit", month:"2-digit" }) : ""; };
@@ -469,8 +495,9 @@ function vLearn() {
         ${item.jp ? `<div class="jpdef">📖 ${esc(item.jp)}</div>` : ""}
         <button class="btn" style="margin-top:14px" id="nextBtn">Tiếp tục</button></div>`;
       $("#nextBtn").addEventListener("click", () => { i++; step(); });
-      $("#nextBtn").focus();
+      $("#pack button")?.focus();
     }));
+    $(".opt")?.focus();
   };
   step();
 }
@@ -501,6 +528,7 @@ function runTest(questions, opts) {
     timer = setTimeout(() => next(-1), per);
     document.querySelectorAll(".opt").forEach(b =>
       b.addEventListener("click", () => next(+b.dataset.k), { once:true }));
+    $(".opt")?.focus();
   };
   step();
 }
