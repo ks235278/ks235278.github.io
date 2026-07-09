@@ -1165,7 +1165,9 @@ async function sendMessage(uid, from, text, meta) {
   if (!text) return;
   const tref = doc(db, "tango_threads", uid);
   await addDoc(collection(tref, "messages"), { from, text, createdAt: serverTimestamp() });
-  const upd = { uid, lastText: text.slice(0, 120), lastAt: serverTimestamp(), lastFrom: from, ...(meta || {}) };
+  const upd = { uid, lastText: text.slice(0, 120), lastAt: serverTimestamp(), lastFrom: from };
+  /* meta chỉ được BỔ SUNG tên/ảnh, không được ghi giá trị rỗng đè lên tên đã có */
+  for (const [k, v] of Object.entries(meta || {})) if (v != null) upd[k] = v;
   upd[from === "user" ? "adminUnread" : "userUnread"] = increment(1);
   await setDoc(tref, upd, { merge: true });
 }
@@ -1308,6 +1310,26 @@ function vChatAdmin() {
       $("#ac")?.classList.remove("viewing"); renderList();
       const el = $("#tv"); if (el) el.innerHTML = `<div class="tv-empty">← Chọn một người để xem và trả lời.</div>`;
     });
+    /* Phong bì thiếu tên (vd: admin nhắn trước, user chưa từng gửi tin) →
+       tra sổ tango_users điền lại; luồng cũ tự lành ngay khi được mở. */
+    if (!t.name && !t.email) getDoc(doc(db, "tango_users", uid)).then(s => {
+      if (!s.exists()) return;
+      const u = s.data(), meta = {};
+      if (u.name) meta.name = u.name;
+      if (u.email) meta.email = u.email;
+      if (u.photo) meta.photo = u.photo;
+      if (!Object.keys(meta).length) return;
+      Object.assign(t, meta);
+      setDoc(doc(db, "tango_threads", uid), meta, { merge: true }).catch(() => {});
+      const hb = $("#tv .tv-head b"), hn = $("#tv .tv-head .note"), av = $("#tv .tv-head .tl-av");
+      if (hb) hb.textContent = t.name || t.email || uid;
+      if (hn) hn.textContent = t.email || "";
+      if (av && av.tagName !== "IMG") {
+        if (t.photo) av.outerHTML = `<img class="tl-av" src="${esc(t.photo)}" alt="" referrerpolicy="no-referrer">`;
+        else av.textContent = String(t.name || t.email || "?").trim()[0] || "?";
+      }
+      const inp = $("#chatIn"); if (inp && t.name) inp.placeholder = `Trả lời ${t.name}…`;
+    }).catch(() => {});
     const msgsQ = query(collection(doc(db, "tango_threads", uid), "messages"), orderBy("createdAt", "asc"), limit(500));
     msgUnsub = onSnapshot(msgsQ, snap => {
       renderBubbles($("#chatBox"), snap.docs.map(d => d.data()), "admin"); markRead(uid, "admin");
