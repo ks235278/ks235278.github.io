@@ -185,6 +185,11 @@ label{font-size:.8rem;color:var(--muted);display:block;margin:10px 0 4px}
   main{padding-bottom:96px}
 }
 footer{text-align:center;color:#7c745f;font-size:.75rem;padding:20px}
+#iabWarn{display:none;background:#3a2c14;border-bottom:1px solid var(--gold);color:var(--cream);
+  font-size:.9rem;line-height:1.6;padding:12px 16px;text-align:center}
+#iabWarn b{color:var(--gold)}
+#iabWarn button{margin-top:8px;background:var(--gold);color:var(--bg);border:none;border-radius:999px;
+  padding:7px 16px;font-size:.88rem;font-weight:600}
 </style>
 </head>
 <body>
@@ -204,6 +209,10 @@ footer{text-align:center;color:#7c745f;font-size:.75rem;padding:20px}
     <a href="#guide" data-r="guide">Hướng dẫn</a>
   </nav>
 </header>
+<div id="iabWarn">⚠️ Bạn đang mở trang trong <b id="iabName">ứng dụng chat</b> nên <b>không đăng nhập được</b>.<br>
+  Hãy bấm nút <b>⋯</b> (hoặc nút chia sẻ) ở góc màn hình rồi chọn <b>“Mở bằng trình duyệt”</b> / <b>Open in Safari</b>.<br>
+  <button id="iabCopy" type="button">📋 Chép link để dán vào Safari/Chrome</button>
+</div>
 <main id="view"><p class="note center">Đang tải…</p></main>
 <footer>単語 Tango · học để nhớ nghĩa — thi để giữ xu · <a href="../">Apps</a></footer>
 
@@ -1334,7 +1343,34 @@ function watchUnread() {
 }
 
 /* ── Auth ───────────────────────────────────────────────────────────── */
+/* Trình duyệt nhúng trong Messenger/Facebook/Zalo… chặn popup và cô lập
+   sessionStorage giữa 2 lần chuyển trang, nên cả signInWithPopup lẫn
+   signInWithRedirect đều thất bại (lỗi "missing initial state").
+   Chỉ còn cách hướng dẫn người dùng mở bằng Safari/Chrome thật. */
+const IAB = (() => {
+  const ua = navigator.userAgent || "";
+  if (/FB_IAB|FBAN|FBAV|Messenger/i.test(ua)) return "Messenger/Facebook";
+  if (/Instagram/i.test(ua))                  return "Instagram";
+  if (/Zalo/i.test(ua))                       return "Zalo";
+  if (/TikTok|musical_ly|Bytedance/i.test(ua)) return "TikTok";
+  if (/\bLine\//i.test(ua))                   return "LINE";
+  return null;
+})();
+if (IAB) {
+  $("#iabName").textContent = IAB;
+  $("#iabWarn").style.display = "block";
+  $("#iabCopy").onclick = async () => {
+    const url = location.href;
+    try { await navigator.clipboard.writeText(url); alert("Đã chép link! Mở Safari hoặc Chrome rồi dán vào thanh địa chỉ."); }
+    catch { prompt("Chép link dưới đây rồi dán vào Safari/Chrome:", url); }
+  };
+}
 async function login() {
+  if (IAB) {
+    $("#iabWarn").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    alert(`Bạn đang mở trong ${IAB} nên không đăng nhập được.\nHãy bấm nút ⋯ (hoặc nút chia sẻ) rồi chọn "Mở bằng trình duyệt" / "Open in Safari".`);
+    return;
+  }
   const prov = new GoogleAuthProvider();
   try { await signInWithPopup(auth, prov); }
   catch (e) {
