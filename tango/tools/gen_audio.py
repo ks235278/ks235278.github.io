@@ -17,6 +17,7 @@ import asyncio, json, re, sys
 from pathlib import Path
 
 import edge_tts
+import fugashi
 
 HERE = Path(__file__).resolve().parent.parent   # .../tango
 VOICE = "ja-JP-NanamiNeural"
@@ -26,17 +27,51 @@ RUBY = re.compile(r"<ruby>.*?<rt>(.*?)</rt></ruby>", re.S)
 RT = re.compile(r"<rt>.*?</rt>", re.S)
 TAG = re.compile(r"<.*?>", re.S)
 
+_tagger = fugashi.Tagger()   # phân tích hình thái để nhận diện trợ từ
 
-def tts_text_word(s):
-    """Từ: r đã là kana trọn cụm — chỉ bỏ thẻ + ký hiệu 〜."""
-    return TAG.sub("", RT.sub("", s)).replace("〜", "").strip()
+
+def _fix_particles(kana):
+    """Trong CHUỖI KANA THƯỜNG (okurigana + trợ từ), chỉ lật trợ từ
+    は→わ / へ→え; giữ nguyên は/へ nằm trong từ (派手→は 'ha').
+    → 母は đọc 'haha-wa' chứ không phải 'haha-ha'."""
+    out = []
+    for tok in _tagger(kana):
+        if tok.feature.pos1 == "助詞" and tok.surface == "は":
+            out.append("わ")
+        elif tok.feature.pos1 == "助詞" and tok.surface == "へ":
+            out.append("え")
+        else:
+            out.append(tok.surface)
+    return "".join(out)
+
+
+def tts_text_word(r_reading, w_kanji):
+    """Từ: r đã là kana trọn cụm. Chỉ lật は→わ / へ→え khi PHÂN TÍCH DẠNG
+    KANJI (w) xác nhận đó là trợ từ VÀ ký tự chỉ xuất hiện 1 lần trong r
+    (không mơ hồ) → tránh lật nhầm は trong từ (把握→はあく giữ nguyên)."""
+    r = TAG.sub("", RT.sub("", r_reading)).replace("〜", "").strip()
+    src = TAG.sub("", RT.sub("", w_kanji))
+    parts = {tok.surface for tok in _tagger(src)
+             if tok.feature.pos1 == "助詞" and tok.surface in ("は", "へ")}
+    for p in parts:
+        if r.count(p) == 1:
+            r = r.replace(p, "わ" if p == "は" else "え")
+    return r
 
 
 def tts_text_ex(s):
-    """Câu ví dụ: thay từng cụm <ruby>kanji<rt>kana</rt></ruby> bằng kana
-    → máy đọc đúng y furigana trên màn, không tự đoán cách đọc kanji."""
-    s = RUBY.sub(lambda m: m.group(1), s)
-    return TAG.sub("", s).replace("〜", "").strip()
+    """Câu ví dụ: phần kanji (ruby) dùng kana furigana ĐÃ CHỐT (giữ nguyên,
+    không đoán lại cách đọc); phần kana thường thì lật trợ từ は/へ đúng chỗ
+    bằng _fix_particles → không còn 労う đọc ろう, cũng không còn 母は đọc ははは."""
+    out, pos = [], 0
+    for m in RUBY.finditer(s):
+        if m.start() > pos:
+            out.append(_fix_particles(TAG.sub("", s[pos:m.start()]).replace("〜", "")))
+        out.append(m.group(1))          # kana furigana đã chốt — giữ nguyên
+        pos = m.end()
+    if pos < len(s):
+        out.append(_fix_particles(TAG.sub("", s[pos:]).replace("〜", "")))
+    return "".join(out).strip()
 
 
 async def gen_one(sem, fid, text, outdir, stats, label, force=False):
@@ -66,7 +101,7 @@ async def main():
     stats = {"ok": 0, "skip": 0, "fail": []}
     jobs = []
     for it in bank["items"]:
-        word = tts_text_word(it.get("r") or it["w"])
+        word = tts_text_word(it.get("r") or it["w"], it["w"])
         if word:
             jobs.append(gen_one(sem, it["id"], word, outdir, stats, it["w"]))
         ex = tts_text_ex(it.get("ex") or "")
