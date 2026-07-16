@@ -40,7 +40,7 @@ nav a.on{color:var(--bg);background:var(--gold);font-weight:600}
   nav a{font-size:.95rem;padding:11px 12px;border-radius:8px}
 }
 .uchip{font-size:.78rem;color:var(--muted);cursor:pointer;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;margin-left:auto}
-main{max-width:640px;margin:0 auto;padding:22px 16px 60px}
+main{max-width:640px;margin:0 auto;padding:22px 16px 26px}
 h1{font-size:1.5rem;margin-bottom:4px}
 h2{font-size:1.1rem;margin:18px 0 8px}
 .sub{color:var(--muted);font-size:.92rem;margin-bottom:18px}
@@ -53,7 +53,9 @@ h2{font-size:1.1rem;margin:18px 0 8px}
 .tag.dim{background:var(--line);color:var(--muted)}
 button{font:inherit;cursor:pointer;border:none;border-radius:10px;padding:11px 18px;font-weight:600}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.opt:focus,#pack button:focus{outline:2px solid var(--gold);outline-offset:2px;border-color:var(--gold)}
+/* Viền vàng CHỈ hiện khi điều hướng bằng bàn phím (Tab) — chạm/bấm chuột thì
+   không hiện, nên trên điện thoại đáp án đầu không còn bị "sáng" như đã chọn. */
+.opt:focus-visible,#pack button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-color:var(--gold)}
 .btn{background:var(--gold);color:var(--bg);width:100%}
 .btn:disabled{opacity:.45;cursor:default}
 .btn2{background:var(--card2);color:var(--cream);border:1px solid var(--line);width:100%}
@@ -182,7 +184,29 @@ label{font-size:.8rem;color:var(--muted);display:block;margin:10px 0 4px}
   #nextBtn{position:fixed;left:0;right:0;bottom:0;width:auto;margin:0;border-radius:0;
     padding:15px 18px calc(15px + env(safe-area-inset-bottom,0px));
     box-shadow:0 -6px 18px rgba(0,0,0,.55);z-index:7}
-  main{padding-bottom:96px}
+  /* Chỉ chừa chỗ cho nút "Tiếp tục" KHI nút đó thật sự tồn tại — nhờ vậy footer
+     nằm sát vùng đáp án, không còn khoảng trống to giữa màn. */
+  main{padding-bottom:18px}
+  body:has(#nextBtn) main{padding-bottom:96px}
+}
+/* ── Hoạt ảnh chung: thẻ trôi lên, đáp án hiện lần lượt, phản hồi khi chạm ── */
+@keyframes riseIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes okPop{0%{transform:scale(1)}42%{transform:scale(1.045)}100%{transform:scale(1)}}
+@keyframes noShake{0%,100%{transform:translateX(0)}18%{transform:translateX(-6px)}
+  36%{transform:translateX(5px)}56%{transform:translateX(-3px)}78%{transform:translateX(2px)}}
+.card{animation:riseIn .32s ease both}
+.word{animation:riseIn .42s .04s cubic-bezier(.2,1.35,.4,1) both}
+.opts .opt{animation:riseIn .34s both;transition:transform .1s ease,border-color .15s,background .15s}
+.opts .opt:nth-child(1){animation-delay:.05s}
+.opts .opt:nth-child(2){animation-delay:.11s}
+.opts .opt:nth-child(3){animation-delay:.17s}
+.opts .opt:nth-child(4){animation-delay:.23s}
+.opts .opt:not(:disabled):active{transform:scale(.97)}
+.opts .opt.right{animation:okPop .42s ease}
+.opts .opt.wrong{animation:noShake .34s ease}
+.pack{animation:riseIn .3s ease both}
+@media(prefers-reduced-motion:reduce){
+  .card,.word,.opts .opt,.pack{animation:none!important}
 }
 /* ── Màn hình mở đầu 3D (hiện 1 lần khi bắt đầu Học/Thi) ──────────── */
 #introOv{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
@@ -220,24 +244,48 @@ label{font-size:.8rem;color:var(--muted);display:block;margin:10px 0 4px}
   #introOv,.introCard,.introQ,.introSub,.introGo,.introHint,.introSpark{
     animation-duration:.01ms!important;animation-iteration-count:1!important}
 }
-footer{color:#8a8069;font-size:.8rem;padding:26px 16px 46px;line-height:1.6}
-.fcoin{max-width:520px;margin:0 auto 18px;background:var(--card);border:1px solid var(--line);
-  border-radius:var(--radius);padding:16px 18px;text-align:left;color:var(--cream)}
-.fcoin-h{color:var(--gold);font-weight:700;font-size:.98rem;margin-bottom:8px}
-.fcoin p{font-size:.87rem;margin-bottom:8px}
-.fcoin ol{margin:0 0 12px;padding-left:20px;font-size:.87rem;display:grid;gap:6px}
-.fcoin a{color:var(--gold)}
-.fbank{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;
-  background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
-.fbank>div{display:flex;flex-direction:column;gap:1px;min-width:0}
-.fbank span{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-.fbank b{font-size:.92rem;color:var(--cream);word-break:break-word}
-.fcopy{background:none;border:1px solid var(--line);color:var(--gold);border-radius:6px;
-  padding:1px 8px;font-size:.72rem;font-weight:600;margin-left:6px;vertical-align:middle;cursor:pointer}
-.fcopy:hover{border-color:var(--gold)}
-.ftag{text-align:center;color:#7c745f;font-size:.75rem}
-.ftag a{color:var(--gold)}
-@media(max-width:420px){.fbank{grid-template-columns:1fr}}
+/* ── Footer "khắc đá": không khung, chữ chìm thẳng vào nền web ─────── */
+footer{position:relative;padding:28px 16px 40px;overflow:hidden;isolation:isolate;line-height:1.6}
+footer::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:min(620px,88%);height:1px;
+  background:linear-gradient(90deg,transparent,rgba(216,164,58,.45),transparent)}
+/* 単語 khổng lồ khắc chìm làm nền */
+.fmark{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);
+  font-family:'Noto Serif JP','Yu Mincho',serif;font-weight:600;
+  font-size:min(34vw,200px);line-height:1;white-space:nowrap;color:transparent;
+  -webkit-text-stroke:1px rgba(236,227,207,.055);
+  pointer-events:none;user-select:none;z-index:-1}
+.fwrap{max-width:560px;margin:0 auto;text-align:center;position:relative}
+/* Khắc chìm = chữ tối hơn nền + mép sáng phía dưới (như đục vào đá) */
+.fcarve{font-family:'Noto Serif JP','Yu Mincho',serif;font-weight:600;
+  font-size:clamp(1.7rem,7vw,2.4rem);letter-spacing:.09em;color:#100e0a;
+  text-shadow:0 1px 0 rgba(236,227,207,.2),0 -1px 1px rgba(0,0,0,.85);margin-bottom:5px}
+.fsub{color:#8b8168;font-size:.82rem;text-shadow:0 1px 0 rgba(0,0,0,.6);margin-bottom:18px}
+.fways{display:grid;gap:10px;margin-bottom:18px;text-align:left}
+.fway{display:flex;gap:10px;align-items:flex-start;font-size:.86rem;color:#b3a88c;
+  text-shadow:0 1px 0 rgba(0,0,0,.7)}
+.fway b{flex:0 0 auto;color:var(--gold);font-size:1rem;line-height:1.45}
+.fway a{color:var(--gold)}
+.fway em{font-style:normal;color:var(--cream);font-weight:600}
+.fno{color:var(--gold);white-space:nowrap}
+/* Số tài khoản: chỉ gạch mảnh, KHÔNG khung */
+.fbank{display:grid;margin-bottom:12px;text-align:left}
+.fbrow{display:flex;align-items:baseline;gap:10px;padding:8px 2px;
+  border-bottom:1px solid rgba(236,227,207,.07)}
+.fbrow:first-child{border-top:1px solid rgba(236,227,207,.07)}
+.fbrow>span{flex:0 0 92px;font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:#7d7460}
+.fbrow>b{font-size:.95rem;color:var(--cream);text-shadow:0 1px 0 rgba(0,0,0,.7);word-break:break-word}
+.fbrow>b i{font-style:normal;color:var(--gold);font-size:.78rem}
+.facct{font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.fcopy{margin-left:auto;background:none;border:1px solid rgba(216,164,58,.4);color:var(--gold);
+  border-radius:999px;padding:3px 11px;font-size:.7rem;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;cursor:pointer;transition:.15s;flex:0 0 auto}
+.fcopy:hover{background:rgba(216,164,58,.12);border-color:var(--gold)}
+.fnote{font-size:.72rem;color:#7d7460;margin-bottom:16px}
+.ftag{font-size:.73rem;color:#12100b;letter-spacing:.03em;
+  text-shadow:0 1px 0 rgba(236,227,207,.14)}
+.ftag a{color:#9a7d3c}
+@media(max-width:420px){.fbrow>span{flex-basis:76px}}
 #iabWarn{display:none;background:#3a2c14;border-bottom:1px solid var(--gold);color:var(--cream);
   font-size:.9rem;line-height:1.6;padding:12px 16px;text-align:center}
 #iabWarn b{color:var(--gold)}
@@ -268,23 +316,24 @@ footer{color:#8a8069;font-size:.8rem;padding:26px 16px 46px;line-height:1.6}
 </div>
 <main id="view"><p class="note center">Đang tải…</p></main>
 <footer>
-  <div class="fcoin">
-    <div class="fcoin-h">💰 Về xu — 1 xu = 1 ¥</div>
-    <p>Xu dùng để đặt cược khi <b>thi thật</b> (học thì miễn phí, không tốn xu). Muốn có xu, chọn 1 trong 2 cách:</p>
-    <ol>
-      <li>Nhắn admin ở tab <a href="#chat">Tin nhắn</a> để được cấp xu.</li>
-      <li>Chuyển khoản vào tài khoản dưới đây, rồi nhắn admin <b>số tiền đã chuyển + tên người gửi</b> — admin sẽ cộng xu tương ứng (chuyển 1.000 ¥ = nhận 1.000 xu).</li>
-    </ol>
-    <div class="fbank">
-      <div><span>Ngân hàng</span><b>au じぶん銀行（0039）</b></div>
-      <div><span>Chi nhánh</span><b>そら支店（108）</b></div>
-      <div><span>Loại · Số tài khoản</span><b>普通 3323782
-        <button type="button" class="fcopy"
-          onclick="navigator.clipboard&&navigator.clipboard.writeText('3323782').then(()=>{this.textContent='✓ đã chép';setTimeout(()=>this.textContent='Chép',1500)})">Chép</button></b></div>
-      <div><span>Chủ tài khoản</span><b>TRINHMANH QUANG</b></div>
+  <div class="fmark" aria-hidden="true">単語</div>
+  <div class="fwrap">
+    <div class="fcarve">1 XU = 1 ¥</div>
+    <p class="fsub">xu để đặt cược khi thi thật — học thì luôn miễn phí</p>
+    <div class="fways">
+      <div class="fway"><b>①</b><p>Nhắn admin ở tab <a href="#chat">Tin nhắn</a> để được <em>cấp xu</em>.</p></div>
+      <div class="fway"><b>②</b><p>Chuyển khoản rồi nhắn admin <em>số tiền + tên người gửi</em> — admin cộng xu tương ứng. <span class="fno">1.000 ¥ = 1.000 xu</span></p></div>
     </div>
+    <div class="fbank">
+      <div class="fbrow"><span>Ngân hàng</span><b>au じぶん銀行 <i>0039</i></b></div>
+      <div class="fbrow"><span>Chi nhánh</span><b>そら支店 <i>108</i></b></div>
+      <div class="fbrow"><span>Tài khoản</span><b class="facct">普通 3323782</b>
+        <button type="button" class="fcopy"
+          onclick="navigator.clipboard&&navigator.clipboard.writeText('3323782').then(()=>{this.textContent='✓ xong';setTimeout(()=>this.textContent='chép',1500)})">chép</button></div>
+    </div>
+    <p class="fnote">Tên người nhận sẽ tự hiện lên trong app ngân hàng khi bạn nhập số tài khoản — nhắn admin nếu cần xác nhận.</p>
+    <div class="ftag">単語 Tango · học để nhớ nghĩa — thi để giữ xu · <a href="../">Apps</a></div>
   </div>
-  <div class="ftag">単語 Tango · học để nhớ nghĩa — thi để giữ xu · <a href="../">Apps</a></div>
 </footer>
 
 <script type="module">
@@ -625,7 +674,6 @@ function vLearn() {
       $("#nextBtn").addEventListener("click", () => { i++; step(); });
       $("#pack button")?.focus();
     }));
-    $(".opt")?.focus();
   };
   introSplash("học").then(step);
 }
@@ -655,7 +703,6 @@ function runTest(questions, opts) {
     timer = setTimeout(() => next(-1), per);
     document.querySelectorAll(".opt").forEach(b =>
       b.addEventListener("click", () => next(+b.dataset.k), { once:true }));
-    $(".opt")?.focus();
   };
   introSplash("thi").then(step);
 }
@@ -744,8 +791,8 @@ async function vOfficial() {
     <div class="card">
       <div class="row"><b>Luật bàn thi</b><span class="tag">chu kỳ đến ${fmtDate(cyc.endAt)}</span></div>
       <ul style="margin:10px 0 0 18px;font-size:.92rem">
-        <li><b>Không giới hạn số bài</b> — thi bao nhiêu tuỳ sức nhớ.</li>
-        <li>Tối đa ${S.cfg?.testSize ?? 20} câu: ưu tiên mục "chín" mới; hết mục mới thì ra lại mục <b>quá hạn ôn lâu nhất</b> (ôn cách quãng trá hình).</li>
+        <li><b>Không giới hạn số bài</b> — thi bao nhiêu tuỳ sức nhớ, học ít hay nhiều đều vào thi được.</li>
+        <li>Tối đa ${S.cfg?.testSize ?? 20} câu, <b>máy chủ nhắm đúng chỗ yếu nhất</b>: học còn ít thì ra <b>từ bạn chưa từng học</b>; học nhiều rồi thì ra <b>đúng những từ bạn hay sai nhất</b>.</li>
         <li>${S.cfg?.perQuestionSec ?? 8} giây mỗi câu — hết giờ = bỏ trống = sai.</li>
         <li>Thang thưởng chu kỳ: đúng <b class="pos">+${cyc.unitPlus}</b> · sai <b class="neg">−${cyc.unitMinus}</b> xu, kẹp 0 → ${cyc.cap} — <b>chỉ mục ra đề lần đầu trong chu kỳ</b> được tính. Mục thi lại chỉ ăn/thua tiền cược.</li>
         <li>Bỏ dở bài = phần còn lại tính sai <b>và mất luôn tiền cược</b>.</li>
@@ -762,15 +809,16 @@ async function vOfficial() {
       <input id="stakeIn" type="number" min="0" max="${Math.min(maxStake, bal)}" placeholder="0">
       <table class="paytbl">
         <tr><td>💎 Đúng 100%</td><td>×3 JACKPOT</td></tr>
-        <tr><td>Đúng ≥ 90%</td><td>×2</td></tr>
-        <tr><td>Đúng ≥ 80%</td><td>×1.5</td></tr>
-        <tr><td>Đúng ≥ 70%</td><td>×1.1</td></tr>
-        <tr><td>Đúng ≥ 60%</td><td>×0.5</td></tr>
+        <tr><td>Đúng ≥ 90%</td><td>×1.6</td></tr>
+        <tr><td>Đúng ≥ 80%</td><td>×1.0 hoà vốn</td></tr>
+        <tr><td>Đúng ≥ 70%</td><td class="neg">×0.5</td></tr>
+        <tr><td>Đúng ≥ 60%</td><td class="neg">×0.2</td></tr>
         <tr><td>Dưới 60%</td><td class="neg">mất sạch cược</td></tr>
-        <tr><td>Chuỗi 🔥 ≥ 5 / ≥ 10</td><td>+10% / +25%</td></tr>
-        <tr><td>Câu Hoàng Kim ✨</td><td>+50%</td></tr>
+        <tr><td>Chuỗi 🔥 ≥ 5 / ≥ 10</td><td>+10% / +20%</td></tr>
+        <tr><td>Câu Hoàng Kim ✨</td><td>+40%</td></tr>
         <tr><td>Thắng bài → kèo TẤT TAY</td><td>×2 hay về 0</td></tr>
       </table>
+      <p class="note" style="margin-top:6px">⚠️ Phải đúng <b>≥ 90%</b> mới có lãi — 80% chỉ hoà vốn.</p>
       <p class="note" style="margin-top:8px">Thắng ròng hôm nay: <b class="${gNet>=0?"pos":"neg"}">${gNet>=0?"+":""}${gNet}</b> / trần +${winCap} xu·ngày.</p>`}
     </div>
     <button class="btn" id="offGo">Vào thi — miễn phí</button>

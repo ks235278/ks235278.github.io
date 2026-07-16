@@ -27,6 +27,8 @@ const DEFAULTS = {
   maxStake: 500,          // cược tối đa / bài thi
   dailyWinCap: 3000,      // trần THẮNG RÒNG từ cược / ngày (JST) — chặn lạm phát xu
   dblWindowSec: 45,       // cửa sổ quyết định + trả lời kèo tất tay
+  hardModeThreshold: 40,  // ≥ ngần này mục "chín" → chuyển sang chế độ "hay sai nhất";
+                          // dưới ngưỡng → ra đề từ CHƯA TỪNG HỌC (khó nhất với người mới)
 };
 const ITEMS = new Map(BANK.items.map((it) => [it.id, it]));
 
@@ -90,6 +92,20 @@ async function getMatureItems(tx, uid, cfg, now) {
   return snap.docs.filter((d) => ITEMS.has(d.id))
     .map((d) => ({ id: d.id, due: Number(d.data().due) || 0, wrong: Number(d.data().wrong) || 0 }));
 }
+/** Mọi mục user ĐÃ TỪNG học (bất kể chín chưa) — để loại ra khi ra đề "từ chưa
+ *  từng học". Chỉ gọi ở chế độ người-mới nên collection còn nhỏ → đọc rẻ. */
+async function getTouchedIds(tx, uid) {
+  const snap = await tx.get(
+    db.collection(`tango_userItems/${uid}/items`).select().limit(900));
+  return new Set(snap.docs.map((d) => d.id));
+}
+/** Bộ đếm SAI do SERVER ghi khi chấm bài (client không sửa được) — dùng để
+ *  chọn "câu hay sai nhất". KHÁC với field wrong ở tango_userItems (client ghi). */
+async function getUserStats(tx, uid) {
+  const s = await tx.get(db.doc(`tango_stats/${uid}`));
+  const d = s.exists ? s.data() : {};
+  return { seen: d.seen || {}, miss: d.miss || {} };
+}
 function buildQuestion(id) {
   const it = ITEMS.get(id);
   const pool = shuffle(BANK.items.filter((x) => x.id !== id)).slice(0, 3);
@@ -97,17 +113,19 @@ function buildQuestion(id) {
   return { q: { itemId: id, w: it.w, r: it.r, opts }, correct: opts.indexOf(it.m) };
 }
 /** Thang trả cược theo độ chính xác + chuỗi + câu hoàng kim. */
+/* Thang trả cược — SIẾT 2026-07-16: chỉ ≥90% mới có lãi, 80% hoà vốn,
+ * dưới 80% là lỗ. Cộng với việc ra đề toàn từ khó → thắng xu khó hơn hẳn. */
 function payoutMult(right, n, maxStreak, goldenHit) {
   const acc = n ? right / n : 0;
   let base = 0;
-  if (right === n && n > 0) base = 3;
-  else if (acc >= 0.9) base = 2;
-  else if (acc >= 0.8) base = 1.5;
-  else if (acc >= 0.7) base = 1.1;
-  else if (acc >= 0.6) base = 0.5;
+  if (right === n && n > 0) base = 3;    // tuyệt đối — jackpot
+  else if (acc >= 0.9) base = 1.6;       // (cũ ×2)
+  else if (acc >= 0.8) base = 1.0;       // (cũ ×1.5) → hoà vốn
+  else if (acc >= 0.7) base = 0.5;       // (cũ ×1.1) → giờ LỖ
+  else if (acc >= 0.6) base = 0.2;       // (cũ ×0.5)
   if (base <= 0) return { base: 0, combo: 0, golden: 0, total: 0 };
-  const combo = maxStreak >= 10 ? 0.25 : maxStreak >= 5 ? 0.1 : 0;
-  const golden = goldenHit ? 0.5 : 0;
+  const combo = maxStreak >= 10 ? 0.2 : maxStreak >= 5 ? 0.1 : 0;
+  const golden = goldenHit ? 0.4 : 0;
   return { base, combo, golden, total: base + combo + golden };
 }
 
@@ -238,21 +256,33 @@ exports.startOfficialTest = onCall(async (req) => {
           `Thi tự do (cược 0) vẫn không giới hạn.`);
     }
 
+    // ── Chọn đề theo ĐỘ SÂU HỌC — luôn nhắm chỗ yếu nhất, KHÔNG chặn ai ──
     const mature = await getMatureItems(tx, auth.uid, cfg, now);
-    if (mature.length < 4)
-      throw new HttpsError("failed-precondition",
-        `Chưa đủ mục "chín" để ra đề (cần ≥ 4, hiện có ${mature.length}). ` +
-        `Mục chín sau ${Math.round(cfg.eligibilityMinutes / 60)} giờ kể từ lần học đúng đầu tiên, và phải học khi đã đăng nhập.`);
     const served = new Set(cyc.servedIds || []);
-    const fresh = [], rep = [];
-    for (const m of mature) (served.has(m.id) ? rep : fresh).push(m);
-    const meteredIds = shuffle(fresh).slice(0, cfg.testSize).map((m) => m.id);
-    let pickIds = [...meteredIds];
-    if (pickIds.length < cfg.testSize) {
-      const byOverdue = shuffle(rep).sort((a, b) => a.due - b.due);
-      pickIds = pickIds.concat(
-        byOverdue.slice(0, cfg.testSize - pickIds.length).map((m) => m.id));
+    let pickIds = [], meteredIds = [], mode;
+    if (mature.length >= cfg.hardModeThreshold) {
+      // HỌC NHIỀU → dồn vào những câu HAY SAI NHẤT (bộ đếm của server, không gian lận được).
+      mode = "weak";
+      const { miss } = await getUserStats(tx, auth.uid);
+      const ranked = shuffle([...mature]).sort((a, b) =>
+        ((miss[b.id] || 0) - (miss[a.id] || 0)) || (a.due - b.due));
+      pickIds = ranked.slice(0, cfg.testSize).map((m) => m.id);
+      meteredIds = pickIds.filter((id) => !served.has(id));
+    } else {
+      // HỌC ÍT → ra đề từ CHƯA TỪNG HỌC. Không tính thang thưởng chu kỳ
+      // (meteredIds rỗng) — chỉ ăn/thua tiền cược.
+      mode = "unseen";
+      const touched = await getTouchedIds(tx, auth.uid);
+      pickIds = shuffle(BANK.items.filter((it) => !touched.has(it.id))
+        .map((it) => it.id)).slice(0, cfg.testSize);
+      if (pickIds.length < cfg.testSize) {   // đã đụng gần hết bank → đệm bằng mục chín
+        const got = new Set(pickIds);
+        pickIds = pickIds.concat(shuffle(mature.map((m) => m.id))
+          .filter((id) => !got.has(id)).slice(0, cfg.testSize - pickIds.length));
+      }
     }
+    if (pickIds.length < 4)
+      throw new HttpsError("failed-precondition", "Chưa đủ dữ liệu để ra đề — thử lại sau.");
     shuffle(pickIds);
 
     const questions = [], correct = [];
@@ -271,7 +301,7 @@ exports.startOfficialTest = onCall(async (req) => {
     tx.set(tRef, {
       uid: auth.uid, cycleId: cyc.ref.id, status: "served",
       servedAt: Timestamp.fromMillis(now), budgetMs, questions,
-      stake, goldenIdx, meteredIds,
+      stake, goldenIdx, meteredIds, mode,
     });
     tx.set(db.doc(`tango_answers/${tRef.id}`), { uid: auth.uid, correct });
     tx.update(cyc.ref, {
@@ -358,9 +388,10 @@ exports.submitOfficialTest = onCall(async (req) => {
     let dbl = null, dblCorrect = -1;
     if (stakeAmt > 0 && !late && payout > 0) {
       const mature = await getMatureItems(tx, auth.uid, cfg, now);
+      const { miss } = await getUserStats(tx, auth.uid);   // đếm ở server, không gian lận được
       const inTest = new Set(t.questions.map((q) => q.itemId));
       const cand = mature.filter((m) => !inTest.has(m.id))
-        .sort((a, b) => b.wrong - a.wrong).slice(0, 5);
+        .sort((a, b) => (miss[b.id] || 0) - (miss[a.id] || 0)).slice(0, 5);
       if (cand.length) {
         const b = buildQuestion(cand[Math.floor(Math.random() * cand.length)].id);
         dbl = { q: b.q, amount: payout, status: "offered",
@@ -390,6 +421,19 @@ exports.submitOfficialTest = onCall(async (req) => {
       tx.set(wRef, { gDay: today, gNet }, { merge: true });
     }
     if (dbl) tx.set(aRef, { dblCorrect }, { merge: true });
+    // Bộ đếm SAI của server — nguồn DUY NHẤT đáng tin để chọn "câu hay sai nhất".
+    // Bài quá hạn (toàn bỏ trống) không phản ánh trí nhớ nên không tính.
+    if (!late && n) {
+      const seenInc = {}, missInc = {};
+      answers.forEach((a, i) => {
+        const id = t.questions[i].itemId;
+        seenInc[id] = FieldValue.increment(1);
+        if (a < 0 || a !== correct[i]) missInc[id] = FieldValue.increment(1);
+      });
+      tx.set(db.doc(`tango_stats/${auth.uid}`),
+        { seen: seenInc, miss: missInc, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true });
+    }
     // Gắn cờ nghi vấn: trung bình dưới 1.5 giây/câu mà không muộn.
     const flagged = !late && timeMs < n * 1500;
     tx.update(tRef, {
