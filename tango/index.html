@@ -693,7 +693,7 @@ function runTest(questions, opts) {
       <p class="note">${esc(opts.title)} · câu ${i+1}/${questions.length}${opts.stake ? ` · 🎲 cược ${opts.stake} xu` : ""}</p>
       <div class="timer"><i id="tbar" style="width:100%"></i></div>
       <div class="card${golden ? " golden" : ""}">
-        ${golden ? `<div class="gband">✨ CÂU HOÀNG KIM — trúng là +50% cược ✨</div>` : ""}
+        ${golden ? `<div class="gband">✨ CÂU HOÀNG KIM — trúng là +40% cược ✨</div>` : ""}
         <div class="word">${rubyWord(S.byId[q.itemId] || q)}</div>
         <div class="opts">${q.opts.map((o,k)=>`<button class="opt" data-k="${k}">${esc(o)}</button>`).join("")}</div>
       </div>`;
@@ -892,7 +892,7 @@ async function revealOfficial(res, out, answers) {
       out.late ? `<span class="neg">Nộp quá hạn — nhà cái nuốt cược.</span>`
         : `Chính xác ${out.right}/${qs.length} → hệ số <b>×${m.base}</b>${out.right === qs.length ? " 💎 JACKPOT" : ""}`,
       !out.late && m.combo ? `Chuỗi ${out.maxStreak} 🔥 → <b>+${Math.round(m.combo*100)}%</b>` : null,
-      !out.late && out.goldenIdx >= 0 ? (out.goldenHit ? `Câu Hoàng Kim ✨ → <b>+50%</b>` : `Câu Hoàng Kim ✨ → trượt`) : null,
+      !out.late && out.goldenIdx >= 0 ? (out.goldenHit ? `Câu Hoàng Kim ✨ → <b>+40%</b>` : `Câu Hoàng Kim ✨ → trượt`) : null,
       out.capped ? `🔒 Kẹp trần thắng ngày (+${out.winCap} xu) — phần vượt bị cắt` : null,
     ].filter(Boolean);
     $("#rvPay").innerHTML = `<div class="card pop"><b>💰 Kết sổ bàn cược</b>
@@ -1173,7 +1173,7 @@ async function vGuide() {
       n: S.user ? `đang đăng nhập: ${esc(S.user.email || "")}`
         : `bấm "Đăng nhập" góc phải trên — chỉ tiến độ học KHI đã đăng nhập mới được tính vào điều kiện thi thật` },
     { t: `Nuôi mục "chín"`, done: st.ripe >= 4,
-      n: `~${st.ripe} mục chín (cần ≥ 4 để có đề thi) · một mục "chín" sau ${eligH} giờ kể từ lần trả lời ĐÚNG đầu tiên lúc đã đăng nhập` },
+      n: `~${st.ripe} mục chín · thi được ngay kể cả khi chưa có mục nào (khi đó đề ra toàn từ bạn CHƯA từng học — khó hơn nhiều). Mục "chín" sau ${eligH} giờ kể từ lần trả lời ĐÚNG đầu tiên lúc đã đăng nhập, và chỉ mục chín mới làm nhích thang thưởng chu kỳ` },
     { t: "Mở chu kỳ thưởng", done: !!cyc && !expired,
       n: cyc ? (expired
           ? `chu kỳ ĐÃ HẾT HẠN — vào Ví bấm "Chốt chu kỳ" nhận ${cyc.rewardMeter || 0} xu, rồi mở chu kỳ mới`
@@ -1239,8 +1239,13 @@ async function vGuide() {
 
     <h2>5 · Thi chính thức — không giới hạn số bài</h2>
     <div class="card" style="font-size:.93rem">
-      Máy chủ chọn tối đa ${cfg.testSize ?? 20} mục chín (ưu tiên mục chưa ra đề; hết thì ra lại mục
-      <b>quá hạn ôn lâu nhất</b> — chính là ôn tập trá hình). ${cfg.perQuestionSec ?? 8} giây/câu, hết giờ = bỏ trống = sai.
+      <b>Học ít hay nhiều đều vào thi được</b> — không có cửa chặn nào. Máy chủ chọn tối đa
+      ${cfg.testSize ?? 20} câu và luôn <b>nhắm đúng chỗ yếu nhất của bạn</b>:
+      <ul style="margin:6px 0 0 18px">
+        <li>Mới học còn ít → ra <b>những từ bạn chưa từng học</b> (chỉ ăn/thua tiền cược, không đụng thang thưởng chu kỳ).</li>
+        <li>Đã học nhiều → ra <b>đúng những từ bạn hay sai nhất</b> (máy chủ tự đếm khi chấm bài).</li>
+      </ul>
+      <div class="note" style="margin-top:6px">${cfg.perQuestionSec ?? 8} giây/câu, hết giờ = bỏ trống = sai.</div>
       <div class="note" style="margin-top:6px">⚠ Bỏ dở bài hoặc nộp quá hạn: các câu còn lại tính sai
       <b>và mất luôn tiền cược</b>. Đề chấm trên máy chủ — đáp án không bao giờ nằm trong máy bạn.</div>
     </div>
@@ -1251,14 +1256,15 @@ async function vGuide() {
       Nộp bài xong máy chủ trả thưởng theo độ chính xác:
       <table class="paytbl">
         <tr><td>💎 Đúng 100%</td><td>×3 JACKPOT</td></tr>
-        <tr><td>Đúng ≥ 90%</td><td>×2</td></tr>
-        <tr><td>Đúng ≥ 80%</td><td>×1.5</td></tr>
-        <tr><td>Đúng ≥ 70%</td><td>×1.1</td></tr>
-        <tr><td>Đúng ≥ 60%</td><td>×0.5</td></tr>
+        <tr><td>Đúng ≥ 90%</td><td>×1.6</td></tr>
+        <tr><td>Đúng ≥ 80%</td><td>×1.0 hoà vốn</td></tr>
+        <tr><td>Đúng ≥ 70%</td><td class="neg">×0.5</td></tr>
+        <tr><td>Đúng ≥ 60%</td><td class="neg">×0.2</td></tr>
         <tr><td>Dưới 60%</td><td class="neg">mất sạch cược</td></tr>
-        <tr><td>Chuỗi đúng liên tiếp 🔥 ≥ 5 / ≥ 10</td><td>+10% / +25%</td></tr>
-        <tr><td>Câu Hoàng Kim ✨ (1 câu/bài, báo trước trên đề)</td><td>+50%</td></tr>
+        <tr><td>Chuỗi đúng liên tiếp 🔥 ≥ 5 / ≥ 10</td><td>+10% / +20%</td></tr>
+        <tr><td>Câu Hoàng Kim ✨ (1 câu/bài, báo trước trên đề)</td><td>+40%</td></tr>
       </table>
+      <div class="note" style="margin-top:8px">⚠️ Phải đúng <b>≥ 90%</b> mới có lãi — 80% chỉ hoà vốn, dưới 80% là lỗ.</div>
       <div class="note" style="margin-top:8px">🔒 Trần thắng ròng <b>+${winCap} xu/ngày</b> (giờ Nhật) —
       chạm trần thì bàn cược nghỉ đến 0h, nhưng thi tự do (cược 0) vẫn không giới hạn.</div>
     </div>
@@ -1283,7 +1289,7 @@ async function vGuide() {
 
     <h2>9 · Kẹt ở đâu? — hỏi nhanh đáp gọn</h2>
     <div class="card" style="font-size:.93rem"><ul style="margin:0 0 0 18px">
-      <li><b>"Chưa đủ mục chín để ra đề"</b> → học thêm lúc đã đăng nhập, rồi chờ đủ ${eligH} giờ.</li>
+      <li><b>"Sao đề toàn từ lạ hoắc?"</b> → bạn học còn ít nên máy chủ ra từ bạn chưa từng học. Học thêm cho đủ mục chín thì đề sẽ chuyển sang <b>đúng những từ bạn hay sai</b>.</li>
       <li><b>"Chưa mở chu kỳ / chu kỳ hết hạn"</b> → vào Ví: mở chu kỳ mới, hoặc Chốt chu kỳ cũ trước.</li>
       <li><b>"Không cược được"</b> → thiếu xu, hoặc hôm nay đã chạm trần thắng +${winCap} xu — mai cược tiếp, thi tự do vẫn mở.</li>
       <li><b>"Lỡ thoát giữa bài thi"</b> → quay lại tab Thi thật ngay: còn hạn thì làm tiếp; quá hạn thì bài tự chốt (câu trống = sai, mất cược).</li>
